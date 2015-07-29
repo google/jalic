@@ -1,0 +1,59 @@
+*** some useful openssl commands:
+openssl list-standard-commands
+openssl list-message-digest-commangs
+openssl list-cipher-commands
+
+openssl list-cipher-algorithms
+openssl list-message-digest-algorithms
+
+*** looking at s3_clnt.c
+int ssl3_connect(SSL *s) // looks like a finite automaton - infinite loop and switch with cases for state
+int ssl3_client_hello(SSL *s)
+int ssl3_get_server_hello(SSL *s)
+int ssl3_get_server_certificate(SSL *s)
+int ssl3_get_key_exchange(SSL *s)
+int ssl3_get_certificate_request(SSL *s)
+int ssl3_get_new_session_ticket(SSL *s)
+
+*** looking at s3_srvr.c
+static const SSL_METHOD *ssl3_get_server_method(int ver)
+int ssl3_accept(SSL *s) // finite automaton again
+int ssl3_send_hello_request(SSL *s)
+int ssl3_check_client_hello(SSL *s)
+int ssl3_get_client_hello(SSL *s)
+int ssl3_send_server_hello(SSL *s)
+int ssl3_send_server_done(SSL *s)
+int ssl3_send_server_key_exchange(SSL *s)
+int ssl3_send_certificate_request(SSL *s)
+int ssl3_get_client_key_exchange(SSL *s)
+int ssl3_get_cert_verify(SSL *s)
+int ssl3_get_client_certificate(SSL *s)
+int ssl3_send_server_certificate(SSL *s)
+int ssl3_send_newsession_ticket(SSL *s)
+int ssl3_send_cert_status(SSL *s)
+int ssl3_get_next_proto(SSL *s)
+
+from TLS spec:
+Note that higher layers should not be overly reliant on whether TLS
+   always negotiates the strongest possible connection between two
+   peers.  There are a number of ways in which a man-in-the-middle
+   attacker can attempt to make two entities drop down to the least
+   secure method they support.  The protocol has been designed to
+   minimize this risk, but there are still attacks available...
+
+The ClientHello and
+   ServerHello establish the following attributes: Protocol Version,
+   Session ID, Cipher Suite, and Compression Method.  Additionally, two
+   random values are generated and exchanged: ClientHello.random and
+   ServerHello.random.
+from s3_clnt.c ssl3_client_hello function
+s->version
+s->s3->client_random
+s->session->session_id
+SSL_get_ciphers(s) -> s (get supported ciphers)
+choose compression
+
+from s3_srvr.c ssl3_send_server_hello function
+
+
+ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:SRP-DSS-AES-256-CBC-SHA:SRP-RSA-AES-256-CBC-SHA:SRP-AES-256-CBC-SHA:DHE-DSS-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA256:DHE-RSA-AES256-SHA:DHE-DSS-AES256-SHA:DHE-RSA-CAMELLIA256-SHA:DHE-DSS-CAMELLIA256-SHA:ECDH-RSA-AES256-GCM-SHA384:ECDH-ECDSA-AES256-GCM-SHA384:ECDH-RSA-AES256-SHA384:ECDH-ECDSA-AES256-SHA384:ECDH-RSA-AES256-SHA:ECDH-ECDSA-AES256-SHA:AES256-GCM-SHA384:AES256-SHA256:AES256-SHA:CAMELLIA256-SHA:PSK-AES256-CBC-SHA:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:RLWE-ECDSA-AES128-GCM-SHA256:RLWE-RSA-AES128-GCM-SHA256:SRP-DSS-AES-128-CBC-SHA:SRP-RSA-AES-128-CBC-SHA:SRP-AES-128-CBC-SHA:DHE-DSS-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-SHA256:DHE-DSS-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA:DHE-RSA-SEED-SHA:DHE-DSS-SEED-SHA:DHE-RSA-CAMELLIA128-SHA:DHE-DSS-CAMELLIA128-SHA:ECDH-RSA-AES128-GCM-SHA256:ECDH-ECDSA-AES128-GCM-SHA256:ECDH-RSA-AES128-SHA256:ECDH-ECDSA-AES128-SHA256:ECDH-RSA-AES128-SHA:ECDH-ECDSA-AES128-SHA:AES128-GCM-SHA256:AES128-SHA256:AES128-SHA:SEED-SHA:CAMELLIA128-SHA:IDEA-CBC-SHA:PSK-AES128-CBC-SHA:ECDHE-RSA-RC4-SHA:ECDHE-ECDSA-RC4-SHA:ECDH-RSA-RC4-SHA:ECDH-ECDSA-RC4-SHA:RC4-SHA:RC4-MD5:PSK-RC4-SHA:ECDHE-RSA-DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:SRP-DSS-3DES-EDE-CBC-SHA:SRP-RSA-3DES-EDE-CBC-SHA:SRP-3DES-EDE-CBC-SHA:EDH-RSA-DES-CBC3-SHA:EDH-DSS-DES-CBC3-SHA:ECDH-RSA-DES-CBC3-SHA:ECDH-ECDSA-DES-CBC3-SHA:DES-CBC3-SHA:PSK-3DES-EDE-CBC-SHA:EDH-RSA-DES-CBC-SHA:EDH-DSS-DES-CBC-SHA:DES-CBC-SHA:EXP-EDH-RSA-DES-CBC-SHA:EXP-EDH-DSS-DES-CBC-SHA:EXP-DES-CBC-SHA:EXP-RC2-CBC-MD5:EXP-RC4-MD5
