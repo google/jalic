@@ -1,0 +1,230 @@
+\documentclass[12pt]{article}
+\usepackage{amssymb,amsmath,latexsym, verbatim}
+\usepackage{tikz,listings,url}
+\usepackage{mathtools}
+\usepackage{float}
+\usepackage[margin=0.5in]{geometry}
+%\usepackage{hyperref}
+\usetikzlibrary{matrix,shapes,arrows,positioning,chains, calc}
+
+\lstset{basicstyle=\bfseries\small}
+
+\newcommand{\nbar}{\overline{n}}
+\newcommand{\mbar}{\overline{m}}
+
+\begin{document}
+\title{A Key Exchange Protocol Based on LWE}
+\maketitle
+
+In~\cite{P14} Peikert for an even modulus $q$ defines two functions:
+\begin{align*}
+\lfloor \cdot \rceil_2&: \mathbb{Z}_q \rightarrow \{0, 1\},\;\; \lfloor v \rceil_2 = \left\lfloor \frac{2}{q} v\right\rceil\\
+\langle \rangle_2&: \mathbb{Z}_q \rightarrow \{0, 1\},\;\; \langle v \rangle_2 = \left\lfloor \frac{4}{q} v\right\rfloor\mod 2\\
+\end{align*}
+Peikert shows that if $v$ is uniformly random, then $\langle v \rangle_2$ is uniformly random and $\lfloor v \rceil_2$ is uniformly random given $\langle v \rangle_2$.
+
+Given a value $w$ that is close to $v$ and given a binary value $c = \langle v \rangle_2$ Peikert shows how to find $\lfloor v \rceil_2 \leftarrow rec(w, c)$. The procedure is called ``reconciliation''. This procedure allows two parties to agree exactly on the value of $\lfloor v  \rceil_2$ (which will become the key), getting at first the approximations of $v$.
+
+\section{First Protocol. Parameters Estimation.}
+The first protocol for key exchange based on LWE uses LWE assumption on the server side to generate a Server's KeyExchange message and uses the left-over hash lemma on the client side to generate a Client's KeyExchange message.
+
+\begin{figure}[H]
+\begin{tikzpicture}
+\matrix (m)[matrix of nodes, column  sep=2cm,row  sep=8mm, nodes={draw=none, anchor=center,text depth=0pt} ]{
+& $A \xleftarrow{\$} \mathbb{Z}_q^{m \times n}$ & \\[-7mm]
+Alice (Server) & & Bob (Client)\\[-7mm]
+$S \xleftarrow{\$} \mathbb{Z}_q^{n \times \nbar}$ & & \\[-7mm]
+$E \xleftarrow{\chi} \mathbb{Z}_q^{m \times \nbar}$ & & \\[-7mm]
+$B := AS + E$ & & \\[-7mm]
+ & $B \in \mathbb{Z}_q^{m \times \nbar}$ & \\[-7mm]
+& & $R \xleftarrow{\$} \{-1, 1\}^{\mbar \times m}$ \\[-7mm]
+& &$B' := RA$\\[-7mm]
+& &$V := RB$\\[-7mm]
+& & $C := \langle V \rangle_2$ \\[-7mm]
+& $B' \in \mathbb{Z}_q^{\mbar \times n}, C$ & \\[-7mm]
+$K:= rec(B'S = RAS, C)$ & & $K:= \lfloor V \rceil_2 = \lfloor RAS + RE\rceil_2$\\[-7mm]
+};
+
+\draw[shorten <=-1.5cm,shorten >=-1.5cm] (m-2-1.south east)--(m-2-1.south west);
+\draw[shorten <=-1.5cm,shorten >=-1.5cm] (m-2-3.south east)--(m-2-3.south west);
+\draw[shorten <=-1cm,shorten >=-1cm,-latex] (m-6-2.south west)--(m-6-2.south east);
+\draw[shorten <=-1cm,shorten >=-1cm,-latex] (m-11-2.south east)--(m-11-2.south west);
+\end{tikzpicture}
+\caption{First LWE-based key exchange protocol.}
+\label{fig:lwe-first}
+\end{figure}
+
+\paragraph{Lower bound on $m$.}
+The LWE-based key exchange protocol is depicted on Figure~\ref{fig:lwe-first}.
+The proof of the protocol requires for $B'$ and $V$ to be computationally close to being uniformly random, independent of $A$ and $B$. To achieve this we apply the leftover hash lemma to argue that if
+\begin{equation}
+\label{eq:m-lowerbound}
+m > (n + \nbar + 1) \log_2(q) + \omega(\log n)
+\end{equation}
+given a uniformly random matrix $(A || B) \in \mathbb{Z}_q^{m \times (n + \nbar)}$ the matrix $R (A || B) \in \mathbb{Z}_q^{\mbar \times (n + \nbar)}$ will be statistically close to uniform.
+
+\paragraph{Choosing $\nbar$ and $\mbar$.}
+We have freedom in choosing the parameters $\mbar$ and $\nbar$. We set LWE parameters to 128-bits security level, which means it is enough to choose $\mbar$, $\nbar$ such that at the end we get a $\lambda = \nbar \cdot \mbar = 128$ bits key.
+
+The size of matrix $|B| = m \nbar \log q$, $|B'| = \mbar n \log q$, the size of $|c| = \nbar \cdot \mbar$ which can be neglected.
+To optimize total communication we need to find $\nbar, \mbar = argmin(|B| + |B'|)$, setting $\mbar = 128 / \nbar$, we need $\nbar = \underset{\nbar}{argmin}(\frac{128 n}{\nbar} + \nbar m)$. Taking derivative, setting it to be equal to zero we get
+\begin{equation}
+\nbar = \sqrt{\frac{128n}{m}}, \mbar = 128 / \nbar
+\label{eq:mbar_nbar}
+\end{equation}
+
+\paragraph{Correctness.}
+% How about sampling some more parameters from this paper?
+For correctness we require for all pairs of indices $(i, j)$, $|(R\cdot E)_{ij}| < \frac{q}{8} - \frac{1}{2}$. This way both parties will get the same key.
+\begin{comment}
+(***) The probability of failure is therefore bounded by the probability that there exists $(i,j)$, $|E_{ij}| \geq \frac{\frac{q}{8} - \frac{1}{2}}{m}$.The latter equals to $2m \sum_{x = z}^\infty D_{\mathbb{Z}, \sigma}(x)$, we can upper bound it with the integral:
+\begin{align*}
+\sum_{x = z}^\infty D_{\mathbb{Z}, \sigma}(x) \leq \int_{z}^\infty D_{\mathbb{Z}, \sigma}(x) dx = \frac{1}{S} \int_{x}^\infty e^{-x^2 / 2\sigma^2}dx = \frac{\sigma \sqrt{2}}{S}\int_{z / \sqrt{2}\sigma}^\infty e^{-t^2}dt =\\
+\frac{\sigma \sqrt{2}}{S}\cdot \frac{\sqrt{\pi}}{2}erfc\left(\frac{z}{2\sqrt{\sigma}}\right) \leq \frac{\sqrt{2\pi}\sigma}{2S}\cdot e^{-\left(\frac{z}{2 \sqrt{\sigma}}\right)^2}\\
+\end{align*}
+\begin{align*}
+&S = 1 + 2 \sum_{k = 1}^\infty \exp(-k^2 / 2\sigma^2) \approx \sqrt{2 \pi} \sigma = 8,\;\;\; \sigma = 3.2
+\end{align*}
+We get that the probability of error is bounded by $m \cdot \frac{\sqrt{2\pi}\sigma}{S} \cdot \exp(-\frac{z^2}{4\sigma}) \approx m \cdot \exp(-(q - 4)^2 / (820 m^2))$. So for any set of parameters that we choose, we need to verify that this quantity is smaller than $2^{-128}$:
+\begin{equation}
+m \cdot \exp(-(q - 4)^2 / (820 m^2)) < 2^{-128}
+\label{eq:correctness}
+\end{equation}
+
+(***)
+An alternative bound: \end{comment}
+For a fixed pair $(i, j)$, we bound the probability $p_{ij}$ of $|(R\cdot E)_{ij}| > \frac{q}{8} - \frac{1}{2}$ as the probability of the sum of $m$ independent Gaussians variables with standart deviation $\sigma$ to exceed $\frac{q}{8} - \frac{1}{2}$. The sum of $m$ independet Gaussians can be approximated with a Gaussian with standart deviation $\sqrt{m}$ times bigger. Therefore the probability can be approximated by
+ 
+% The probability of failure is therefore bounded by a probability of the sum of $m$ independent Gaussian variables with standart deviation $\sigma$ to exceed $q / 8 - 1 / 2$. The standart deviation of the sum of $m$ Gaussian distributions with standart deviation $\sigma$ each is $\sqrt{m} \sigma$. Therefore the probability can be approximated by
+\begin{align*}
+p_{ij} \leq \int_{\frac{q}{8} - \frac{1}{2}}^\infty D_{\mathbb{Z}, \sqrt{m}\sigma}(x) dx \leq \frac{1}{2}\cdot \exp\left(-\frac{\left(\frac{q}{8} - \frac{1}{2}\right)^2}{2m\sigma^2}\right)
+\end{align*}
+
+The probability that at least one coefficient of $k_A$ and $k_B$ disagree is clearly bounded above by the sum of all the $p_{ij}$, so we get
+\begin{equation}
+\Pr(k_A \neq k_B) \leq \sum_{i = 0}^{\nbar} \sum_{j = 0}^{\mbar} p_{ij} \leq \frac{\nbar \cdot \mbar}{2}\cdot \exp\left(-\frac{\left(\frac{q}{8} - \frac{1}{2}\right)^2}{2m\sigma^2}\right)
+\label{eq:correctness_alternative}
+\end{equation}
+
+For our choice of parameters we need the quantity in Eq.~\ref{eq:correctness_alternative} to be much smaller than the security advantage $2^{-128}$.
+
+\paragraph{Real parameters for 128bits security.}
+ The hardness of LWE depends on the magnitude of the noise with respect to the modulus of the scheme. The smaller the ratio $q / r$, the easier the problem is, that's why $q$ can not be too big. Sample parameters from [vdPS13] paper gives an upper bound on $q$ based on $\sigma$ and $n$ for security level 128:
+\begin{equation}
+q < 2^{41}, \sigma = 3.2, n = 1024
+\label{eq:q_sigma_n}
+\end{equation}
+
+Taking parameters estimates from Eq.\ref{eq:q_sigma_n} ($n = 2^{10}$, $q = 2^{16}$), we get that the optimal $m$ for communication that satisfies the requirement in Eq.~\ref{eq:m-lowerbound} is $m = 2^{14}$. The total communication is therefore equal to
+\begin{align}
+\nbar = \sqrt{\frac{128n}{m}} \approx 3\\
+\mbar = 128 / \nbar = 46\\
+(\mbar n + m \nbar) \log q = 16 (1024 \cdot 46 + 2^{14} \cdot 3) = 188 KB
+\end{align}
+
+\begin{comment}
+Unfortunately for these parameters the correctness from Eq.~\ref{eq:correctness_} requirement is not satisfied, we get: $16067 > 2^{-128}$.
+\end{comment}
+
+Comparing to RLWE-TLS paper, the total communication there is 8KB.
+
+The correctness requirement from Eq.~\ref{eq:correctness_alternative} is satisfied with a big enough margin: $64 * \exp(-(2^{16} / 8 - 0.5)^2 / (2 \cdot 2^{14} \cdot 3.2^2)) \approx 2^{-282}$.
+
+Summarizing our parameters for this protocol will be:
+\begin{equation*}
+   \boxed{
+   \begin{aligned}
+     q &= 2^{16}\\
+     n &= 2^{10}\\
+     m &= 2^{14}\\
+     \sigma &= 3.2\\
+     \nbar &= 3\\
+     \mbar &= 46\\
+     \end{aligned}
+}
+\end{equation*}
+
+\section{Second Protocol. Parameters Estimation.}
+In this protocol instead of using a leftover hash lemma on the Client's side to generate a random matrix $B'$ we apply LWE another time on another side of the matrix $A$. Note that the matrix $A$ is square and all the secret matrices $S, S'$ are coming from a bounded noise distribution, as opposed to from a uniformly random distribution as in the previous protocol.
+
+\textcolor{red}{TODO: Verify the parameters of the reduction for short non-uniform secrets.}\\
+
+\begin{figure}[H]
+\begin{tikzpicture}
+\matrix (m)[matrix of nodes, column  sep=0.5cm,row  sep=8mm, nodes={draw=none, anchor=center,text depth=0pt} ]{
+& $A \xleftarrow{\$} \mathbb{Z}_q^{n \times n}$ & \\[-7mm]
+Alice (Server) & & Bob (Client)\\[-7mm]
+$S, E \xleftarrow{\chi} \mathbb{Z}_q^{n \times \nbar}$ & & \\[-7mm]
+$B := AS + E$ & & \\[-7mm]
+ & $B \in \mathbb{Z}_q^{n \times \nbar}$ & \\[-7mm]
+& & $S', E' \xleftarrow{\chi} \mathbb{Z}_q^{\mbar \times n}$ \\[-7mm]
+& & $B' := S'A + E'$\\[-7mm]
+& & $E'' \xleftarrow{\chi} \mathbb{Z}_q^{\mbar \times \nbar}$ \\[-7mm]
+& & $V := S'B + E'' =$\\[-7mm]
+& & $= S'AS + S'E + E''$\\[-7mm]
+& & $C := \langle V \rangle_2$ \\[-7mm]
+& $B' \in \mathbb{Z}_q^{\mbar \times n}, C \in \mathbb{Z}_2^{\mbar \times \nbar}$ & \\[-7mm]
+$K:= rec(B'S = S'AS + E'S, C)$ & & $K:= \lfloor V \rceil_2 = \lfloor S'AS + S'E + E''\rceil_2$\\[-7mm]
+};
+
+\draw[shorten <=-0.5cm,shorten >=-0.5cm] (m-2-1.south east)--(m-2-1.south west);
+\draw[shorten <=-0.5cm,shorten >=-0.5cm] (m-2-3.south east)--(m-2-3.south west);
+\draw[shorten <=-1cm,shorten >=-1cm,-latex] (m-5-2.south west)--(m-5-2.south east);
+\draw[shorten <=-1cm,shorten >=-1cm,-latex] (m-12-2.south east)--(m-12-2.south west);
+\end{tikzpicture}
+\caption{Second LWE-based key exchange protocol.}
+\label{fig:lwe-second}
+\end{figure}
+
+\paragraph{Choosing $\nbar$ and $\mbar$.}
+To get the key size to be equal to 128 bits we set $\nbar \cdot \mbar = 128$ and to minimize the communication we set $\nbar = \mbar = \sqrt{128} \approx 12$.
+
+\paragraph{Correctness.} For correctness we require that for all pairs of indices $(i, j)$, $|(E'S + S'E + E'')_{ij}| < \frac{q}{8} - \frac{1}{2}$. For a fixed pair $(i, j)$, we bound the probability of $|(E'S + S'E + E'')_{ij}| > \frac{q}{8} - \frac{1}{2}$ as follows. There are $2n + 1$ terms in the sum, if the $(ij)$ element is greater than $\frac{q}{8} - \frac{1}{2}$, then at least one of the elements of the gaussian matrix must exceed $z = \sqrt{\frac{q - 4}{8 (2n + 1)}}$ ($z \approx 511$ for $q = 2^{32}$) in absolute value. The probability of individual gaussian coefficient exceeding $z$ in absolute value can be bounded by $e^{-(z / (\sqrt{2}\sigma))^2}$. The probability that one out of (4n + 1) exceeds $z$ is bounded above by the sum $(4n + 1)e^{-(z / (\sqrt{2}\sigma))^2}$. Similarly, the probability that at least one coefficient of $k_A$ and $k_B$ disagree is clearly bounded above by the sum of all the $p_{ij}$, so we get
+\begin{equation}
+\Pr(k_A \neq k_B) \leq \sum_{i = 0}^{\nbar} \sum_{j = 0}^{\nbar} p_{ij} \leq \nbar^2 (4n + 1)e^{-(q - 4)/ 16 (2n + 1)\sigma^2}
+\label{eq:correctness_2_alternative}
+\end{equation}
+For our choice of parameters we need the quantity in Eq.~\ref{eq:correctness_2_alternative} to be much smaller than the security advantage $2^{-128}$.
+ 
+\paragraph{Real parameters for 128bits security.}
+Choosing (for correctness) $q = 2^{32}$, $n = 1024$, $\sigma = 3.2$ (as in~\cite{BCNS14}), having $\nbar = \mbar = 12$, we get the communication to be equal to $(2 n \nbar \log q)$ bits = 96KB.
+
+\begin{equation*}
+   \boxed{
+   \begin{aligned}
+     q &= 2^{32}\\
+     n &= 2^{10}\\
+     \sigma &= 3.2\\
+     \nbar &= \mbar = 12\\
+     \end{aligned}
+}
+\end{equation*}
+
+The correctness requirement from Eq.~\ref{eq:correctness_2_alternative} is satisfied with a big margin: $144 \cdot (4 \cdot 1024 + 1) \cdot \exp(-(2^{32} - 4) / 16 / 2049 / 3.2^2) \leq 2^{-2^{14}}$.
+
+\section{Side Results.}
+
+Estimating the running time of the existing algorithms for LWE also shows that for given parameters ($n = 1024, q = 2^{16}$ or $q = 2^{32}$ the number of operations required to solve a decision problem is more than $2^{128}$. For that see~\cite{APS15} and their script (\url{https://bitbucket.org/malb/lwe-estimator}) with the code below:
+\begin{lstlisting}[frame=single]
+load("https://bitbucket.org/malb/lwe-estimator/raw/HEAD/estimator.py")
+n, alpha, q = 1024, alphaf(8,2^32-1), 2^32-1
+set_verbose(1)
+_ = estimate_lwe(n, alpha, q, skip=["arora-gb"])
+\end{lstlisting}
+
+From \cite{BLPRS13}:
+\textit{``Combined with our modulus reduction, this has the following interesting consequence: the hardness of $n$-dimensional LWE with modulus $q$ is a function of the quantity $n\log_2 q$. In other words, varying $n$ and $q$ individually while keeping $n \log_2 q$ fixed essentially preserves the hardness of LWE.''}
+
+From \cite{BLPRS13}, Section 2.3: \textit{``It follows from our results that (decision) LWE is hard not just for a smooth modulus q..., but actually for all moduli q, including prime moduli...''} (they operate with a power of two moduli q).
+
+From \cite{MP12}, \textit{``We also mention that the simplest and most practically efficient choices of G work for a modulus q that is a power of a small prime, such as $q = 2^k$, but a crucial search/decision reduction for LWE was not previously known for such q, despite its obvious practical utility.''} Provide a very general reduction for $q$ like $q = 2^k$ that are divisible by powers of very small primes. \textit{``Altogether, for any $n$ and typical values of $q \geq 2^{16}$...''}
+
+See https://www.math.auckland.ac.nz/$\sim$sgal018/gen-gaussians.pdf on how to compute the discrete Gaussian distribution (Section 4.2).
+
+Having $\sigma \sqrt{2 \pi} > \sqrt{n}$ allows the reduction of GapSVP to LWE to go through [Reg09] (as stated in Page 2, [ARS15]. (There $\sigma = \alpha q / \sqrt{2 \pi}$).
+
+The LWE problem is characterized by $n, \alpha, q, \psi$, where $\psi$ is the distribution of the elements of the secret vector.
+\bibliographystyle{alpha}
+\bibliography{WriteUp}
+
+\end{document}
