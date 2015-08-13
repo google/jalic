@@ -54,7 +54,7 @@ static uint32_t single_sample_ct(uint64_t *in) {
   return index;
 }
 
-void sample_n_ct(uint32_t *s, int n) {
+void lwe_sample_n_ct(uint32_t *s, int n) {
   RANDOM_VARS;
   int j, k, index;
   int number_of_batches = (n + 63) / 64; // ceil(n / 64)
@@ -81,7 +81,7 @@ void sample_n_ct(uint32_t *s, int n) {
 }
 
 // s (12 x 1024)
-void sample_ct(uint32_t *s) {
+void lwe_sample_ct(uint32_t *s) {
   RANDOM_VARS;
   int i, j, k;
   for (k = 0; k < 12; k++) {
@@ -104,7 +104,7 @@ void sample_ct(uint32_t *s) {
   }
 }
 
-void sample_n(uint32_t *s, int n) {
+void lwe_sample_n(uint32_t *s, int n) {
   RANDOM_VARS;
   int j, k, index;
   int number_of_batches = (n + 63) / 64; // ceil(n / 64)
@@ -130,7 +130,7 @@ void sample_n(uint32_t *s, int n) {
 }
 
 // s (12 x 1024)
-void sample(uint32_t *s) {
+void lwe_sample(uint32_t *s) {
   RANDOM_VARS;
   int i, j, k, index;
   for (k = 0; k < 12; k++) {
@@ -154,7 +154,7 @@ void sample(uint32_t *s) {
 }
 
 // [.]_2
-void round2(uint64_t *out, const uint32_t *in) {
+void lwe_round2(uint64_t *out, const uint32_t *in) {
   int i;
 
   // out should have enough space for 128-bits //NB!
@@ -172,7 +172,7 @@ void round2(uint64_t *out, const uint32_t *in) {
 
 /* Constant time version. */
 // [.]_2
-void round2_ct(uint64_t *out, const uint32_t *in) {
+void lwe_round2_ct(uint64_t *out, const uint32_t *in) {
   int i;
   // out should have enough space for 128-bits //NB!
   memset((unsigned char *)out, 0, 16);
@@ -184,7 +184,7 @@ void round2_ct(uint64_t *out, const uint32_t *in) {
 }
 
 // <.>_2
-void crossround2(uint64_t *out, const uint32_t *in) {
+void lwe_crossround2(uint64_t *out, const uint32_t *in) {
   int i;
   // out should have enough space for 1024-bits
   memset((unsigned char *)out, 0, 16);
@@ -200,7 +200,7 @@ void crossround2(uint64_t *out, const uint32_t *in) {
 }
 
 // <.>_2
-void crossround2_ct(uint64_t *out, const uint32_t *in) {
+void lwe_crossround2_ct(uint64_t *out, const uint32_t *in) {
   int i;
   memset((unsigned char *)out, 0, 16);
   for (i = 0; i < 128; i++) {
@@ -210,7 +210,7 @@ void crossround2_ct(uint64_t *out, const uint32_t *in) {
   }
 }
 
-void rec(uint64_t *out, const uint32_t *w, const uint64_t *b) {
+void lwe_rec(uint64_t *out, const uint32_t *w, const uint64_t *b) {
   int i;
 
   // out should have enough space for 128-bits
@@ -232,7 +232,7 @@ void rec(uint64_t *out, const uint32_t *w, const uint64_t *b) {
   }
 }
 
-void rec_ct(uint64_t *out, const uint32_t *w, const uint64_t *b) {
+void lwe_rec_ct(uint64_t *out, const uint32_t *w, const uint64_t *b) {
   int i;
   memset((unsigned char *)out, 0, 16);
   for (i = 0; i < 128; i++) {
@@ -245,7 +245,7 @@ void rec_ct(uint64_t *out, const uint32_t *w, const uint64_t *b) {
 }
 
 // multiply by s on the right
-void key_gen_server(uint32_t *out, const uint32_t *a, const uint32_t *s, const uint32_t *e) {
+void lwe_key_gen_server(uint32_t *out, const uint32_t *a, const uint32_t *s, const uint32_t *e) {
   // might want to optimize for array accesses - change the multiplication by 12 in the indices by switching to transposes
   // a (1024 x 1024)
   // s,e (1024 x 12)
@@ -262,7 +262,7 @@ void key_gen_server(uint32_t *out, const uint32_t *a, const uint32_t *s, const u
 }
 
 // multiply by s on the left
-void key_gen_client(uint32_t *out, const uint32_t *a, const uint32_t *s, const uint32_t *e) {
+void lwe_key_gen_client(uint32_t *out, const uint32_t *a, const uint32_t *s, const uint32_t *e) {
   // a (1024 x 1024)
   // s',e' (12 x 1024)
   // out = s'a + e' (12 x 1024)
@@ -278,7 +278,7 @@ void key_gen_client(uint32_t *out, const uint32_t *a, const uint32_t *s, const u
 }
 
 // multiply by s on the left
-void key_derive_client(uint32_t *out, const uint32_t *b, const uint32_t *s, const uint32_t *e) {
+void lwe_key_derive_client(uint32_t *out, const uint32_t *b, const uint32_t *s, const uint32_t *e) {
   // b (1024 x 12)
   // s (12 x 1024)
   // e (12 x 12)

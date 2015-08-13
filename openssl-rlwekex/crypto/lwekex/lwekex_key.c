@@ -20,11 +20,11 @@
 	unsigned int aes_num = 0; \
 	unsigned char aes_in[AES_BLOCK_SIZE]; \
 	memset(aes_in, 0, AES_BLOCK_SIZE);
-#define RANDOM8   ((uint8_t) randomplease(&aes_key, aes_ivec, aes_ecount_buf, &aes_num, aes_in))
-#define RANDOM32 ((uint32_t) randomplease(&aes_key, aes_ivec, aes_ecount_buf, &aes_num, aes_in))
-#define RANDOM64 ((uint64_t) randomplease(&aes_key, aes_ivec, aes_ecount_buf, &aes_num, aes_in))
+#define RANDOM8   ((uint8_t) lwe_randomplease(&aes_key, aes_ivec, aes_ecount_buf, &aes_num, aes_in))
+#define RANDOM32 ((uint32_t) lwe_randomplease(&aes_key, aes_ivec, aes_ecount_buf, &aes_num, aes_in))
+#define RANDOM64 ((uint64_t) lwe_randomplease(&aes_key, aes_ivec, aes_ecount_buf, &aes_num, aes_in))
 
-uint64_t randomplease(AES_KEY *aes_key, unsigned char aes_ivec[AES_BLOCK_SIZE],
+uint64_t lwe_randomplease(AES_KEY *aes_key, unsigned char aes_ivec[AES_BLOCK_SIZE],
                       unsigned char aes_ecount_buf[AES_BLOCK_SIZE],
                       unsigned int *aes_num, unsigned char aes_in[AES_BLOCK_SIZE]) {
 	uint64_t out;
@@ -32,7 +32,7 @@ uint64_t randomplease(AES_KEY *aes_key, unsigned char aes_ivec[AES_BLOCK_SIZE],
 	return out;
 }
 #endif
-
+/*
 #ifdef RANDOMNESS_RCFOUR
 #include <openssl/rc4.h>
 #define RANDOM_VARS \
@@ -85,7 +85,7 @@ uint64_t random64() {
 	return b;
 }
 #endif
-
+*/
 #include "lwekexlib/lwe.c"
 #include "lwekexlib/lwe_a.h"
 
@@ -386,11 +386,11 @@ int LWE_PAIR_generate_key(LWE_PAIR *key, LWE_CTX *ctx, char isForServer) {
 	}
 
 #if CONSTANT_TIME
-	sample_ct(key->s);
-	sample_ct(key->e);
+	lwe_sample_ct(key->s);
+	lwe_sample_ct(key->e);
 #else
-	sample(key->s);
-	sample(key->e);
+	lwe_sample(key->s);
+	lwe_sample(key->e);
 #endif
 	printf("  secret S = ");
 	int i;
@@ -400,10 +400,10 @@ int LWE_PAIR_generate_key(LWE_PAIR *key, LWE_CTX *ctx, char isForServer) {
 	printf("...0x%08X\n", key->s[1024 * 12 - 1]);
 
 	if (isForServer) {
-          key_gen_server(key->pub->b, key->pub->param->a, key->s, key->e);
+          lwe_key_gen_server(key->pub->b, key->pub->param->a, key->s, key->e);
         }
 	else {
-          key_gen_client(key->pub->b, key->pub->param->a, key->s, key->e);
+          lwe_key_gen_client(key->pub->b, key->pub->param->a, key->s, key->e);
         }
 
 	ok = 1;
@@ -558,10 +558,17 @@ int LWEKEX_compute_key_alice(void *out, size_t outlen, const LWE_PUB *peer_pub_k
 	    }
 	  }
 	}
+
+        printf("  Computing B'S = "); // DEBUG LINE
+	for (i = 0; i < 12 * 12; i++) {
+	    printf("0x%08X ", w[i]);
+	}
+	printf("\n");
+	
 #if CONSTANT_TIME
-	rec_ct (ka, w, peer_reconciliation->c);
+	lwe_rec_ct (ka, w, peer_reconciliation->c);
 #else
-	rec (ka, w, peer_reconciliation->c);
+	lwe_rec (ka, w, peer_reconciliation->c);
 #endif
 
         printf("  Computing key K = rec(B'S, C) = "); // DEBUG LINE
@@ -603,9 +610,9 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation, co
 	uint32_t *eprimeprime = (uint32_t *) OPENSSL_malloc (12 * 12 * sizeof (uint32_t));
         printf("  Sampling Gaussian noise E'' (%i elements) = ", 12 * 12); // DEBUG LINE
 #if CONSTANT_TIME
-	sample_n_ct(eprimeprime, 12 * 12);
+	lwe_sample_n_ct(eprimeprime, 12 * 12);
 #else
-	sample_n(eprimeprime, 12 * 12);
+	lwe_sample_n(eprimeprime, 12 * 12);
 #endif
 	for (i = 0; i < 2; i++) {
           printf("0x%08X ", eprimeprime[i]);
@@ -614,7 +621,7 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation, co
 	
         printf("  Computing V = S'B + E'' = "); // DEBUG LINE
 
-	key_derive_client(v, peer_pub_key->b, priv_pub_key->s, eprimeprime); // can potentially pass a context in here
+	lwe_key_derive_client(v, peer_pub_key->b, priv_pub_key->s, eprimeprime); // can potentially pass a context in here
 	OPENSSL_free(eprimeprime);
 	for (i = 0; i < 12 * 12; i++) {
           printf("0x%08X ", v[i]);
@@ -624,14 +631,14 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation, co
 
 #if CONSTANT_TIME
         printf("  Computing reconciliation: C = <V>_2\n"); // DEBUG LINE
-	crossround2_ct(reconciliation->c, v);
+	lwe_crossround2_ct(reconciliation->c, v);
         printf("  Computing key K = [V]_2 = "); // DEBUG LINE
-	round2_ct(kb, v);
+	lwe_round2_ct(kb, v);
 #else
         printf("  Computing reconciliation: C = <V>_2\n"); // DEBUG LINE
-	crossround2(reconciliation->c, v);
+	lwe_crossround2(reconciliation->c, v);
         printf("  Computing key K = [V]_2 = "); // DEBUG LINE
-	round2(kb, v);
+	lwe_round2(kb, v);
 #endif
 	for (i = 0; i < 4; i++) {
           printf("0x%08X ", ((uint32_t *)kb)[i]);

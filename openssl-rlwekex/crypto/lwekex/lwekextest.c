@@ -131,13 +131,13 @@ static int test_lwekex(BIO *out, int single) {
 	reclen = i2o_LWE_REC(rec, &recbuf);
 	if (single) {
 		BIO_printf(out, "  rec (%i bytes) = ", (int) reclen);
-		for (i = 0; i < reclen / 8; i++) {
-		  BIO_printf(out, "0x%08X ", ((uint64_t *)recbuf)[i]);
+		for (i = 0; i < reclen / 4; i++) {
+		  BIO_printf(out, "0x%08X ", ((uint32_t *)recbuf)[i]);
 		}
 		BIO_puts(out, "\n");
 	}
 
-	if (single) BIO_puts(out, "Reconstructing Bob's values\n");
+	if (single) BIO_puts(out, "Reconstructing Bob's values \n");
 
 	// if (single) BIO_puts(out, "  Bob's key reconstruction from string \n");
 	if (o2i_LWE_PUB(&bob_reconstructed, bpubbuf, bpublen) == NULL) {

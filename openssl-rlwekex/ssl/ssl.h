@@ -251,6 +251,7 @@ extern "C" {
 #define SSL_TXT_kECDH		"kECDH"
 #define SSL_TXT_kEECDH		"kEECDH"
 #define SSL_TXT_kRLWE		"kRLWE"
+#define SSL_TXT_kLWE		"kLWE"
 #define SSL_TXT_kPSK            "kPSK"
 #define SSL_TXT_kGOST		"kGOST"
 #define SSL_TXT_kSRP		"kSRP"
@@ -277,6 +278,7 @@ extern "C" {
 #define SSL_TXT_AECDH		"AECDH"
 #define SSL_TXT_ECDSA		"ECDSA"
 #define SSL_TXT_RLWE		"RLWE" /* same as "kRLWE" */
+#define SSL_TXT_LWE		"LWE" /* same as "kLWE" */
 #define SSL_TXT_KRB5      	"KRB5"
 #define SSL_TXT_PSK             "PSK"
 #define SSL_TXT_SRP		"SRP"

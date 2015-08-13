@@ -126,6 +126,9 @@
 #ifndef OPENSSL_NO_RLWEKEX
 #include <openssl/rlwekex.h>
 #endif
+#ifndef OPENSSL_NO_LWEKEX
+#include <openssl/lwekex.h>
+#endif
 
 #ifdef  __cplusplus
 extern "C" {
@@ -510,6 +513,9 @@ typedef struct ssl3_state_st
 #endif
 #ifndef OPENSSL_NO_RLWEKEX
 		RLWE_PAIR *rlwe; /* holds short lived RLWE key */
+#endif
+#ifndef OPENSSL_NO_LWEKEX
+		LWE_PAIR *lwe; /* holds short lived LWE key */
 #endif
 
 		/* used when SSL_ST_FLUSH_DATA is entered */

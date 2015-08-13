@@ -2894,6 +2894,74 @@ OPENSSL_GLOBAL SSL_CIPHER ssl3_ciphers[]={
 	128,
 	},
 #endif
+#endif
+
+#ifndef OPENSSL_NO_LWEKEX
+	/* Cipher D004 */
+	{
+	1,
+	TLS1_TXT_LWE_RSA_WITH_AES_128_GCM_SHA256,
+	TLS1_CK_LWE_RSA_WITH_AES_128_GCM_SHA256,
+	SSL_kLWE,
+	SSL_aRSA,
+	SSL_AES128GCM,
+	SSL_AEAD,
+	SSL_TLSV1_2,
+	SSL_NOT_EXP|SSL_HIGH,
+	SSL_HANDSHAKE_MAC_SHA256|TLS1_PRF_SHA256,
+	128,
+	128,
+	},
+
+	/* Cipher D005 */
+	{
+	1,
+	TLS1_TXT_LWE_ECDSA_WITH_AES_128_GCM_SHA256,
+	TLS1_CK_LWE_ECDSA_WITH_AES_128_GCM_SHA256,
+	SSL_kLWE,
+	SSL_aECDSA,
+	SSL_AES128GCM,
+	SSL_AEAD,
+	SSL_TLSV1_2,
+	SSL_NOT_EXP|SSL_HIGH,
+	SSL_HANDSHAKE_MAC_SHA256|TLS1_PRF_SHA256,
+	128,
+	128,
+	},
+
+#ifdef OPENSSL_HYBRID_LWE_ECDHE
+	/* Cipher D006 */
+	{
+	1,
+	TLS1_TXT_LWE_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+	TLS1_CK_LWE_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+	SSL_kLWE|SSL_kEECDH,
+	SSL_aRSA,
+	SSL_AES128GCM,
+	SSL_AEAD,
+	SSL_TLSV1_2,
+	SSL_NOT_EXP|SSL_HIGH,
+	SSL_HANDSHAKE_MAC_SHA256|TLS1_PRF_SHA256,
+	128,
+	128,
+	},
+
+	/* Cipher D007 */
+	{
+	1,
+	TLS1_TXT_LWE_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+	TLS1_CK_LWE_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+	SSL_kLWE|SSL_kEECDH,
+	SSL_aECDSA,
+	SSL_AES128GCM,
+	SSL_AEAD,
+	SSL_TLSV1_2,
+	SSL_NOT_EXP|SSL_HIGH,
+	SSL_HANDSHAKE_MAC_SHA256|TLS1_PRF_SHA256,
+	128,
+	128,
+	},
+#endif
 
 #endif
 
@@ -2991,6 +3059,7 @@ int ssl3_num_ciphers(void)
 
 const SSL_CIPHER *ssl3_get_cipher(unsigned int u)
 	{
+	//	printf("%s\n", ssl3_ciphers[SSL3_NUM_CIPHERS-1-u]); // DEBUG LINE
 	if (u < SSL3_NUM_CIPHERS)
 		return(&(ssl3_ciphers[SSL3_NUM_CIPHERS-1-u]));
 	else
@@ -3056,6 +3125,10 @@ void ssl3_free(SSL *s)
 	if (s->s3->tmp.rlwe != NULL)
 		RLWE_PAIR_free(s->s3->tmp.rlwe);
 #endif
+#ifndef OPENSSL_NO_LWEKEX
+	if (s->s3->tmp.lwe != NULL)
+		LWE_PAIR_free(s->s3->tmp.lwe);
+#endif
 
 	if (s->s3->tmp.ca_names != NULL)
 		sk_X509_NAME_pop_free(s->s3->tmp.ca_names,X509_NAME_free);
@@ -3114,6 +3187,13 @@ void ssl3_clear(SSL *s)
 		{
 		RLWE_PAIR_free(s->s3->tmp.rlwe);
 		s->s3->tmp.rlwe = NULL;
+		}
+#endif
+#ifndef OPENSSL_NO_LWEKEX
+	if (s->s3->tmp.lwe != NULL)
+		{
+		LWE_PAIR_free(s->s3->tmp.lwe);
+		s->s3->tmp.lwe = NULL;
 		}
 #endif
 #ifndef OPENSSL_NO_TLSEXT

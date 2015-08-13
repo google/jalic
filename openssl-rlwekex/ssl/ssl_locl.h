@@ -164,6 +164,9 @@
 #ifndef OPENSSL_NO_RLWEKEX
 #include <openssl/rlwekex.h>
 #endif
+#ifndef OPENSSL_NO_LWEKEX
+#include <openssl/lwekex.h>
+#endif
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <openssl/symhacks.h>
@@ -303,6 +306,7 @@
 #define SSL_kGOST       0x00000200L /* GOST key exchange */
 #define SSL_kSRP        0x00000400L /* SRP */
 #define SSL_kRLWE		0x00000800L /* Ring Learning with Errors */
+#define SSL_kLWE		0x00001000L /* Learning with Errors NB! should be s.t. & 534 = 0 (the previous value of 0A00L will not work, will be appeared to be deprecated */
 
 /* Bits for algorithm_auth (server authentication) */
 #define SSL_aRSA		0x00000001L /* RSA auth */
@@ -520,6 +524,9 @@ typedef struct cert_st
 #ifndef OPENSSL_NO_RLWEKEX
 	RLWE_PAIR *rlwe_tmp;
 #endif
+#ifndef OPENSSL_NO_LWEKEX
+	LWE_PAIR *lwe_tmp;
+#endif
 
 	CERT_PKEY pkeys[SSL_PKEY_NUM];
 
@@ -551,6 +558,10 @@ typedef struct sess_cert_st
 #ifndef OPENSSL_NO_RLWEKEX
 	RLWE_PUB *peer_rlwepub_tmp;
 	RLWE_REC *peer_rlwerec_tmp;
+#endif
+#ifndef OPENSSL_NO_LWEKEX
+	LWE_PUB *peer_lwepub_tmp;
+	LWE_REC *peer_lwerec_tmp;
 #endif
 
 	int references; /* actually always 1 at the moment */
