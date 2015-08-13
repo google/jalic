@@ -1,0 +1,89 @@
+\documentclass[12pt]{article}
+\usepackage{amssymb,amsmath,latexsym, verbatim}
+\usepackage{tikz,listings,url}
+\usepackage{mathtools}
+\usepackage{float}
+\usepackage[margin=0.5in]{geometry}
+%\usepackage{hyperref}
+\usetikzlibrary{matrix,shapes,arrows,positioning,chains, calc}
+
+\lstset{basicstyle=\bfseries\small}
+
+\newcommand{\nbar}{\overline{n}}
+\newcommand{\mbar}{\overline{m}}
+
+\begin{document}
+\title{Evaluation of LWE Key Exchange Protocol}
+\maketitle
+
+\section{Assymptotics}
+\begin{center}
+    \begin{tabular}{| l | l |}
+    \hline
+Server work & $O(n^2\nbar)$\\ \hline
+Client work & $O(n^2\mbar)$\\ \hline
+Client downloads & $O(n \nbar)$\\ \hline
+Client uploads & $O(n \mbar)$\\ \hline
+    \end{tabular}
+\end{center}
+
+\section{First round of evaluations}
+\paragraph{RLWE}
+RLWE (128 bits security, deriving 1024 bits key)
+\begin{center}
+    \begin{tabular}{| l | l | l |}
+    \hline
+    keygen & Bob shared & Alice shared \\ \hline
+    0.000674s & 0.000402s & 0.000119s  \\ \hline
+    \end{tabular}
+\end{center}
+
+TSH protocol transcript:
+\begin{center}
+    \begin{tabular}{| l | l | l |}
+    \hline
+    $\leftarrow$ ClientHello & 94B & 0x005e\\ \hline
+    $\rightarrow$ ServerHello & 58B & 0x003a\\ \hline
+    $\rightarrow$ Certificate & 594B & 0x0252\\ \hline
+    \textcolor{red}{$\rightarrow$ ServerKeyExchange} & \textcolor{red}{4234B = 4.1KB} & 0x108a\\ \hline
+    $\rightarrow$ ServerHelloDone & 4B & 0x4\\ \hline
+    \textcolor{red}{$\leftarrow$ ClientKeyExchange} & \textcolor{red}{4232B = 4.1KB} & 0x1088\\ \hline
+    $\leftarrow$ ChangeCipherSpec & 1B & 0x1\\ \hline
+    $\leftarrow$ Finished & 16B & 0x10\\ \hline
+    $\rightarrow$ Session Ticket & 170B & 0x00aa\\ \hline
+    $\rightarrow$ ChangeCipherSpec & 1B & 0x1\\ \hline
+    $\rightarrow$ Finished & 16B & 0x10\\ \hline
+    \end{tabular}
+\end{center}
+
+\paragraph{LWE}
+LWE (128 bits security, deriving $128 = \nbar \mbar$ bits key)
+\begin{center}
+    \begin{tabular}{| l | l | l | l |}
+    \hline
+    Alice keygen & Bob keygen & Bob shared & Alice shared \\ \hline
+    0.0157s & 0.0295s & 0.0002s & 0.0001s \\ \hline
+    \multicolumn{4}{c}{Using $A^T$ in generating client's key:} \\ \hline
+    0.0159s &   \textcolor{red}{0.0149s} &   0.000147s &   0.000119s \\ \hline
+    \end{tabular}
+\end{center}
+About 20 X slowdown in key generation compared to RLWE, the rest is comparable.
+
+TSH protocol transcript:
+\begin{center}
+    \begin{tabular}{| l | l | l |}
+    \hline
+    $\leftarrow$ ClientHello & 94B & 0x005e\\ \hline
+    $\rightarrow$ ServerHello & 58B & 0x003a\\ \hline
+    $\rightarrow$ Certificate & 594B & 0x0252\\ \hline
+    \textcolor{red}{$\rightarrow$ ServerKeyExchange} & \textcolor{red}{49290B = 48KB} & 0xc08a\\ \hline
+    $\rightarrow$ ServerHelloDone & 4B & 0x4\\ \hline
+    \textcolor{red}{$\leftarrow$ ClientKeyExchange} & \textcolor{red}{49176B = 48KB} & 0xc018\\ \hline
+    $\leftarrow$ ChangeCipherSpec & 1B & 0x1\\ \hline
+    $\leftarrow$ Finished & 16B & 0x10\\ \hline
+    $\rightarrow$ Session Ticket & 170B & 0x00aa\\ \hline
+    $\rightarrow$ ChangeCipherSpec & 1B & 0x1\\ \hline
+    $\rightarrow$ Finished & 16B & 0x10\\ \hline
+    \end{tabular}
+\end{center}
+\end{document}
