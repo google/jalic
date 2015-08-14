@@ -29,7 +29,7 @@ void lwe_key_gen_server(uint32_t *out, const uint32_t *a, const uint32_t *s, con
 // multiply by s on the left
 // computes out = sa + e
 // where a (1024 x 1024), s,e (12 x 1024), 
-void lwe_key_gen_client(uint32_t *out, const uint32_t *a, const uint32_t *s, const uint32_t *e);
+void lwe_key_gen_client(uint32_t *out, const uint32_t *a_transpose, const uint32_t *s, const uint32_t *e);
 // multiply by s on the left
 // computes out = sb+e
 // where b (1024 x 12), s (12 x 1024), e (12 x 12)

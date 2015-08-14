@@ -14,6 +14,7 @@ extern "C" {
 struct lwe_param_st {
   int version;
   uint32_t *a; // 1024 x 1024
+  uint32_t *a_transpose; // 1024 x 1024
   int references;
   int	flags;
 };

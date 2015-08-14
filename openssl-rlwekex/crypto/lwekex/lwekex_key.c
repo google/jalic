@@ -89,6 +89,21 @@ uint64_t random64() {
 #include "lwekexlib/lwe.c"
 #include "lwekexlib/lwe_a.h"
 
+// #define DEBUG_LOGS
+
+int debug_printf(const char *format, ...) {
+ #ifdef DEBUG_LOGS
+	va_list args;
+	int ret;
+	va_start(args, format);
+	ret = printf(format, args);
+	va_end(args);
+	return ret;
+#else
+	return 0;
+#endif /* DEBUG_LOGS */
+}
+
 /* Allocate and deallocate auxiliary variables (context) data structure */
 
 LWE_CTX *LWE_CTX_new(void) {
@@ -126,6 +141,7 @@ LWE_PARAM *LWE_PARAM_new(void) {
 	ret->references = 1;
 
 	ret->a = (uint32_t *) lwe_a;
+	ret->a_transpose = (uint32_t *) lwe_a_transpose;
 
 	return (ret);
 }
@@ -392,18 +408,18 @@ int LWE_PAIR_generate_key(LWE_PAIR *key, LWE_CTX *ctx, char isForServer) {
 	lwe_sample(key->s);
 	lwe_sample(key->e);
 #endif
-	printf("  secret S = ");
+	debug_printf("  secret S = ");
 	int i;
 	for (i = 0; i < 2; i++) {
-          printf("0x%08X ", key->s[i]);
+          debug_printf("0x%08X ", key->s[i]);
         }
-	printf("...0x%08X\n", key->s[1024 * 12 - 1]);
+	debug_printf("...0x%08X\n", key->s[1024 * 12 - 1]);
 
 	if (isForServer) {
           lwe_key_gen_server(key->pub->b, key->pub->param->a, key->s, key->e);
         }
 	else {
-          lwe_key_gen_client(key->pub->b, key->pub->param->a, key->s, key->e);
+          lwe_key_gen_client(key->pub->b, key->pub->param->a_transpose, key->s, key->e);
         }
 
 	ok = 1;
@@ -559,11 +575,11 @@ int LWEKEX_compute_key_alice(void *out, size_t outlen, const LWE_PUB *peer_pub_k
 	  }
 	}
 
-        printf("  Computing B'S = "); // DEBUG LINE
+        debug_printf("  Computing B'S = "); // DEBUG LINE
 	for (i = 0; i < 12 * 12; i++) {
-	    printf("0x%08X ", w[i]);
+	    debug_printf("0x%08X ", w[i]);
 	}
-	printf("\n");
+	debug_printf("\n");
 	
 #if CONSTANT_TIME
 	lwe_rec_ct (ka, w, peer_reconciliation->c);
@@ -571,11 +587,11 @@ int LWEKEX_compute_key_alice(void *out, size_t outlen, const LWE_PUB *peer_pub_k
 	lwe_rec (ka, w, peer_reconciliation->c);
 #endif
 
-        printf("  Computing key K = rec(B'S, C) = "); // DEBUG LINE
+        debug_printf("  Computing key K = rec(B'S, C) = "); // DEBUG LINE
 	for (i = 0; i < 4; i++) {
-          printf("0x%08X ", ((uint32_t *)ka)[i]);
+          debug_printf("0x%08X ", ((uint32_t *)ka)[i]);
 	}
-	printf("\n");
+	debug_printf("\n");
 
 	if (KDF != 0) {
 		if (KDF((unsigned char *) ka, 2 * sizeof(uint64_t), out, &outlen) == NULL) {
@@ -608,42 +624,42 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation, co
 	uint64_t *kb = (uint64_t *) OPENSSL_malloc (2 * sizeof (uint64_t));
 
 	uint32_t *eprimeprime = (uint32_t *) OPENSSL_malloc (12 * 12 * sizeof (uint32_t));
-        printf("  Sampling Gaussian noise E'' (%i elements) = ", 12 * 12); // DEBUG LINE
+        debug_printf("  Sampling Gaussian noise E'' (%i elements) = ", 12 * 12); // DEBUG LINE
 #if CONSTANT_TIME
 	lwe_sample_n_ct(eprimeprime, 12 * 12);
 #else
 	lwe_sample_n(eprimeprime, 12 * 12);
 #endif
 	for (i = 0; i < 2; i++) {
-          printf("0x%08X ", eprimeprime[i]);
+          debug_printf("0x%08X ", eprimeprime[i]);
         }
-	printf("...0x%08X\n", eprimeprime[12 * 12 - 1]);
+	debug_printf("...0x%08X\n", eprimeprime[12 * 12 - 1]);
 	
-        printf("  Computing V = S'B + E'' = "); // DEBUG LINE
+        debug_printf("  Computing V = S'B + E'' = "); // DEBUG LINE
 
 	lwe_key_derive_client(v, peer_pub_key->b, priv_pub_key->s, eprimeprime); // can potentially pass a context in here
 	OPENSSL_free(eprimeprime);
 	for (i = 0; i < 12 * 12; i++) {
-          printf("0x%08X ", v[i]);
+          debug_printf("0x%08X ", v[i]);
         }
-	printf("\n");
+	debug_printf("\n");
 	// printf("...0x%08X\n", v[12 * 12 - 1]);
 
 #if CONSTANT_TIME
-        printf("  Computing reconciliation: C = <V>_2\n"); // DEBUG LINE
+        debug_printf("  Computing reconciliation: C = <V>_2\n"); // DEBUG LINE
 	lwe_crossround2_ct(reconciliation->c, v);
-        printf("  Computing key K = [V]_2 = "); // DEBUG LINE
+        debug_printf("  Computing key K = [V]_2 = "); // DEBUG LINE
 	lwe_round2_ct(kb, v);
 #else
-        printf("  Computing reconciliation: C = <V>_2\n"); // DEBUG LINE
+        debug_printf("  Computing reconciliation: C = <V>_2\n"); // DEBUG LINE
 	lwe_crossround2(reconciliation->c, v);
-        printf("  Computing key K = [V]_2 = "); // DEBUG LINE
+        debug_printf("  Computing key K = [V]_2 = "); // DEBUG LINE
 	lwe_round2(kb, v);
 #endif
 	for (i = 0; i < 4; i++) {
-          printf("0x%08X ", ((uint32_t *)kb)[i]);
+          debug_printf("0x%08X ", ((uint32_t *)kb)[i]);
 	}
-	printf("\n");
+	debug_printf("\n");
 
 	if (KDF != 0) {
 		if (KDF((unsigned char *) kb, 2 * sizeof(uint64_t), out, &outlen) == NULL) {

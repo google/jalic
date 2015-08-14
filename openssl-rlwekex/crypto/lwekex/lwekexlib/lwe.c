@@ -250,28 +250,31 @@ void lwe_key_gen_server(uint32_t *out, const uint32_t *a, const uint32_t *s, con
   // a (1024 x 1024)
   // s,e (1024 x 12)
   // out = as + e (1024 x 12)
-  int i, j, k;
+  int i, j, k, index;
   for (i = 0; i < 1024; i++) {
     for (k = 0; k < 12; k++) {
-      out[i * 12 + k] = e[i * 12 + k];
+      index = i * 12 + k;
+      out[index] = e[index];
       for (j = 0; j < 1024; j++) {
-	out[i * 12 + k] += a[i * 1024 + j] * s[j * 12 + k];
+	out[index] += a[(i << 10) + j] * s[j * 12 + k];
       }
     }
   }
 }
 
 // multiply by s on the left
-void lwe_key_gen_client(uint32_t *out, const uint32_t *a, const uint32_t *s, const uint32_t *e) {
+void lwe_key_gen_client(uint32_t *out, const uint32_t *a_transpose, const uint32_t *s, const uint32_t *e) {
   // a (1024 x 1024)
   // s',e' (12 x 1024)
   // out = s'a + e' (12 x 1024)
-  int i, j, k;
+  int i, j, k, index;
   for (k = 0; k < 12; k++) {
     for (i = 0; i < 1024; i++) {
-      out[k * 1024 + i] = e[k * 1024 + i];
+      index = (k << 10) + i;
+      out[index] = e[index];
       for (j = 0; j < 1024; j++) {
-	out[k * 1024 + i] += s[k * 1024 + j] * a[j * 1024 + i];
+	// out[index] += s[(k << 10) + j] * a[(j << 10) + i];
+	out[index] += s[(k << 10) + j] * a_transpose[(i << 10) + j];
       }
     }
   }
