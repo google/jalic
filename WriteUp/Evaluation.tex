@@ -28,13 +28,18 @@ Client uploads & $O(n \mbar)$\\ \hline
 \end{center}
 
 \section{First round of evaluations}
-\paragraph{RLWE}
+\subsection{RLWE \tiny{(RLWE-RSA-AES128-GCM-SHA256)}}
+
+\footnotesize{\textbf{keygen:} sampling $s(')$, $e(')$ and computing $b(') = as(') + e(')$\\
+\textbf{Bob shared:} sampling $e''$, computing $v = s'b + e''$, $c = \langle v \rangle_2$, $k = \lfloor v \rceil_2$\\
+\textbf{Alice shared:} computing $k = rec(b's, c)$}\\
+
 RLWE (128 bits security, deriving 1024 bits key)
 \begin{center}
     \begin{tabular}{| l | l | l |}
     \hline
     keygen & Bob shared & Alice shared \\ \hline
-    0.000674s & 0.000402s & 0.000119s  \\ \hline
+    0.674ms & 0.402ms & 0.119ms  \\ \hline
     \end{tabular}
 \end{center}
 
@@ -45,9 +50,9 @@ TSH protocol transcript:
     $\leftarrow$ ClientHello & 94B & 0x005e\\ \hline
     $\rightarrow$ ServerHello & 58B & 0x003a\\ \hline
     $\rightarrow$ Certificate & 594B & 0x0252\\ \hline
-    \textcolor{red}{$\rightarrow$ ServerKeyExchange} & \textcolor{red}{4234B = 4.1KB} & 0x108a\\ \hline
+    \textcolor{red}{$\rightarrow$ ServerKeyExchange} & \textcolor{red}{4234B = 4KiB} & 0x108a\\ \hline
     $\rightarrow$ ServerHelloDone & 4B & 0x4\\ \hline
-    \textcolor{red}{$\leftarrow$ ClientKeyExchange} & \textcolor{red}{4232B = 4.1KB} & 0x1088\\ \hline
+    \textcolor{red}{$\leftarrow$ ClientKeyExchange} & \textcolor{red}{4232B = 4KiB} & 0x1088\\ \hline
     $\leftarrow$ ChangeCipherSpec & 1B & 0x1\\ \hline
     $\leftarrow$ Finished & 16B & 0x10\\ \hline
     $\rightarrow$ Session Ticket & 170B & 0x00aa\\ \hline
@@ -56,15 +61,21 @@ TSH protocol transcript:
     \end{tabular}
 \end{center}
 
-\paragraph{LWE}
+\subsection{LWE \tiny{(LWE-RSA-AES128-GCM-SHA256)}}
+
+\footnotesize{\textbf{Alice keygen:} sampling $S$, $E$ and computing $B = AS + E$\\
+\textbf{Bob keygen:} sampling $S'$, $E'$ and computing $B' = S'A + E'$\\
+\textbf{Bob shared:} sampling $E''$, computing $V = S'B + E''$, $C = \langle V \rangle_2$, $K = \lfloor V \rceil_2$\\
+\textbf{Alice shared:} computing $K = rec(B'S, C)$\\}
+
 LWE (128 bits security, deriving $128 = \nbar \mbar$ bits key)
 \begin{center}
     \begin{tabular}{| l | l | l | l |}
     \hline
     Alice keygen & Bob keygen & Bob shared & Alice shared \\ \hline
-    0.0157s & 0.0295s & 0.0002s & 0.0001s \\ \hline
+    15.7ms & 29.5ms & 0.2ms & 0.1ms \\ \hline
     \multicolumn{4}{c}{Using $A^T$ in generating client's key:} \\ \hline
-    0.0159s &   \textcolor{red}{0.0149s} &   0.000147s &   0.000119s \\ \hline
+    15.9s &   \textcolor{red}{14.9ms} &   0.147ms &   0.119ms \\ \hline
     \end{tabular}
 \end{center}
 About 20 X slowdown in key generation compared to RLWE, the rest is comparable.
@@ -76,9 +87,9 @@ TSH protocol transcript:
     $\leftarrow$ ClientHello & 94B & 0x005e\\ \hline
     $\rightarrow$ ServerHello & 58B & 0x003a\\ \hline
     $\rightarrow$ Certificate & 594B & 0x0252\\ \hline
-    \textcolor{red}{$\rightarrow$ ServerKeyExchange} & \textcolor{red}{49290B = 48KB} & 0xc08a\\ \hline
+    \textcolor{red}{$\rightarrow$ ServerKeyExchange} & \textcolor{red}{49290B = 48KiB} & 0xc08a\\ \hline
     $\rightarrow$ ServerHelloDone & 4B & 0x4\\ \hline
-    \textcolor{red}{$\leftarrow$ ClientKeyExchange} & \textcolor{red}{49176B = 48KB} & 0xc018\\ \hline
+    \textcolor{red}{$\leftarrow$ ClientKeyExchange} & \textcolor{red}{49176B = 48KiB} & 0xc018\\ \hline
     $\leftarrow$ ChangeCipherSpec & 1B & 0x1\\ \hline
     $\leftarrow$ Finished & 16B & 0x10\\ \hline
     $\rightarrow$ Session Ticket & 170B & 0x00aa\\ \hline
