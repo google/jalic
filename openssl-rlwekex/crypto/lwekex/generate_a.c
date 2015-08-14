@@ -20,12 +20,28 @@ int main(int argc, char *argv[]) {
     printf("ERROR: Could not open the file");
     return 0;
   }
-  int i, j;
+  int i, j, index = 0;
+  uint32_t lwe_a_transpose[1024 * 1024];
+  uint32_t tmp;
   fprintf(f, "uint32_t lwe_a[1024 * 1024] = {\n");
   for (i = 0; i < (1 << 18); i++) {
     fprintf(f, "  ");
     for (j = 0; j < 4; j++) {
-      fprintf(f, "0x%08X, ", random32());
+      tmp = random32();
+      index = i * 4 + j;
+      lwe_a_transpose[(index % 1024) * 1024 + index / 1024] = tmp;
+      fprintf(f, "0x%08X, ", tmp);
+    }
+    fprintf(f, "\n");
+  }
+  fprintf(f, "};\n\n");
+
+  fprintf(f, "uint32_t lwe_a_transpose[1024 * 1024] = {\n");
+  index = 0;
+  for (i = 0; i < (1 << 18); i++) {
+    fprintf(f, "  ");
+    for (j = 0; j < 4; j++) {
+      fprintf(f, "0x%08X, ", lwe_a_transpose[index++]);
     }
     fprintf(f, "\n");
   }

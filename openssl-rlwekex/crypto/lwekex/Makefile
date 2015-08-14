@@ -57,7 +57,7 @@ install:
 tags:
 	ctags $(SRC)
 
-generate_a:
+generate_a: generate_a.c
 	gcc -o generate_a generate_a.c $(INCLUDES) -L$(TOP) -lcrypto -ldl
 	./generate_a ${FILE}
 
