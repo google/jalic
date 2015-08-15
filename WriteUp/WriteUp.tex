@@ -181,7 +181,7 @@ To get the key size to be equal to 128 bits we set $\nbar \cdot \mbar = 128$ and
 
 \paragraph{Correctness.} For correctness we require that for all pairs of indices $(i, j)$, $|(E'S + S'E + E'')_{ij}| < \frac{q}{8} - \frac{1}{2}$. For a fixed pair $(i, j)$, we bound the probability of $|(E'S + S'E + E'')_{ij}| > \frac{q}{8} - \frac{1}{2}$ as follows. There are $2n + 1$ terms in the sum, if the $(ij)$ element is greater than $\frac{q}{8} - \frac{1}{2}$, then at least one of the elements of the gaussian matrix must exceed $z = \sqrt{\frac{q - 4}{8 (2n + 1)}}$ ($z \approx 511$ for $q = 2^{32}$) in absolute value. The probability of individual gaussian coefficient exceeding $z$ in absolute value can be bounded by $e^{-(z / (\sqrt{2}\sigma))^2}$. The probability that one out of (4n + 1) exceeds $z$ is bounded above by the sum $(4n + 1)e^{-(z / (\sqrt{2}\sigma))^2}$. Similarly, the probability that at least one coefficient of $k_A$ and $k_B$ disagree is clearly bounded above by the sum of all the $p_{ij}$, so we get
 \begin{equation}
-\Pr(k_A \neq k_B) \leq \sum_{i = 0}^{\nbar} \sum_{j = 0}^{\nbar} p_{ij} \leq \nbar^2 (4n + 1)e^{-(q - 4)/ 16 (2n + 1)\sigma^2}
+\Pr(k_A \neq k_B) \leq \sum_{i = 0}^{\nbar} \sum_{j = 0}^{\nbar} p_{ij} \leq \nbar \cdot \mbar (4n + 1)e^{-(q - 4)/ 16 (2n + 1)\sigma^2}
 \label{eq:correctness_2_alternative}
 \end{equation}
 For our choice of parameters we need the quantity in Eq.~\ref{eq:correctness_2_alternative} to be much smaller than the security advantage $2^{-128}$.

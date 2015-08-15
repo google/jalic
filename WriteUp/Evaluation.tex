@@ -16,7 +16,7 @@
 \title{Evaluation of LWE Key Exchange Protocol}
 \maketitle
 
-\section{Assymptotics}
+\section{Asymptotics}
 \begin{center}
     \begin{tabular}{| l | l |}
     \hline
@@ -31,14 +31,14 @@ Client uploads & $O(n \mbar)$\\ \hline
 \subsection{RLWE \tiny{(RLWE-RSA-AES128-GCM-SHA256)}}
 
 \footnotesize{\textbf{keygen:} sampling $s(')$, $e(')$ and computing $b(') = as(') + e(')$\\
-\textbf{Bob shared:} sampling $e''$, computing $v = s'b + e''$, $c = \langle v \rangle_2$, $k = \lfloor v \rceil_2$\\
-\textbf{Alice shared:} computing $k = rec(b's, c)$}\\
+\textbf{Client shared:} sampling $e''$, computing $v = s'b + e''$, $c = \langle v \rangle_2$, $k = \lfloor v \rceil_2$\\
+\textbf{Server shared:} computing $k = rec(b's, c)$}\\
 
 RLWE (128 bits security, deriving 1024 bits key)
 \begin{center}
     \begin{tabular}{| l | l | l |}
     \hline
-    keygen & Bob shared & Alice shared \\ \hline
+    keygen & Client shared & Server shared \\ \hline
     0.674ms & 0.402ms & 0.119ms  \\ \hline
     \end{tabular}
 \end{center}
@@ -63,18 +63,18 @@ TSH protocol transcript:
 
 \subsection{LWE \tiny{(LWE-RSA-AES128-GCM-SHA256)}}
 
-\footnotesize{\textbf{Alice keygen:} sampling $S$, $E$ and computing $B = AS + E$\\
-\textbf{Bob keygen:} sampling $S'$, $E'$ and computing $B' = S'A + E'$\\
-\textbf{Bob shared:} sampling $E''$, computing $V = S'B + E''$, $C = \langle V \rangle_2$, $K = \lfloor V \rceil_2$\\
-\textbf{Alice shared:} computing $K = rec(B'S, C)$\\}
+\footnotesize{\textbf{Server keygen:} sampling $S$, $E$ and computing $B = AS + E$\\
+\textbf{Client keygen:} sampling $S'$, $E'$ and computing $B' = S'A + E'$\\
+\textbf{Client shared:} sampling $E''$, computing $V = S'B + E''$, $C = \langle V \rangle_2$, $K = \lfloor V \rceil_2$\\
+\textbf{Server shared:} computing $K = rec(B'S, C)$\\}
 
 LWE (128 bits security, deriving $128 = \nbar \mbar$ bits key)
 \begin{center}
     \begin{tabular}{| l | l | l | l |}
     \hline
-    Alice keygen & Bob keygen & Bob shared & Alice shared \\ \hline
+    Server keygen & Client keygen & Client shared & Server shared \\ \hline
     15.7ms & 29.5ms & 0.2ms & 0.1ms \\ \hline
-    \multicolumn{4}{c}{Using $A^T$ in generating client's key:} \\ \hline
+    \multicolumn{4}{c}{Store and use $A^T$ in generating client's key:} \\ \hline
     15.9s &   \textcolor{red}{14.9ms} &   0.147ms &   0.119ms \\ \hline
     \end{tabular}
 \end{center}
@@ -97,4 +97,33 @@ TSH protocol transcript:
     $\rightarrow$ Finished & 16B & 0x10\\ \hline
     \end{tabular}
 \end{center}
+
+\subsection{Better reconciliation mechanism}
+See pencil notes, if $i$ bits are extracted from a single element in $Z_q$, then the probability for the two parties to fail the handshake (to end up with different keys) would be bounded from above by the following expression:
+\begin{align*}
+\mbar \cdot \nbar \cdot (4n) \exp\left(-\frac{q}{2^{3 + i} \cdot (2n) \sigma^2}\right)
+\end{align*}
+
+Since everything scales proportionally to $\mbar$ and $\nbar$, we can draw the following estimates (for now we assume $\nbar = \mbar$):
+% formula used to calculate the exponent in the second column: (-2^(18 - i)/3.2/3.2 + ln(2^19 - i)) * log(e)
+\begin{center}
+    \begin{tabular}{|p{3cm}| c | c | c | c |}
+    \hline
+    Bits extracted from one ring element ($i$) & Probability of failure & $\nbar = \mbar = \sqrt{\frac{128}{i}}$ & Server/Client keygen (ms) & Client upload/download (KiB)\\ \hline
+    1 & 1e-5553 & 12 & 16 & 48\\ \hline
+    2 & 1e-2773 & 8 & 24 & 72\\ \hline
+    3 & 1e-1384 & 7 & 27 & 82\\ \hline
+    4 & 1e-689 & 6 & 32 & 96\\ \hline
+    5 & 1e-341 & 5 & 38 & 115\\ \hline
+    6 & 1e-167 & 5 & 38 & 115\\ \hline
+    7 & 1e-81 & 5 & 38 & 115\\ \hline
+    8 & 1e-37 & 4 & 48 & 144\\ \hline
+    9 & 1e-15 & 4 & 48 & 144\\ \hline
+    10 & 1e-5 & 4 & 48 & 144\\ \hline
+    11 & ~1 & 4 & 48 & 144\\ \hline
+    \end{tabular}
+\end{center}
+
+Trying out to extract 16bits, failed handshakes: .
+
 \end{document}
