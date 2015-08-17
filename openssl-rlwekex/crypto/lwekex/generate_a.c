@@ -23,6 +23,7 @@ int main(int argc, char *argv[]) {
   int i, j, index = 0;
   uint32_t lwe_a_transpose[1024 * 1024];
   uint32_t tmp;
+  fprintf(f, "#ifndef _LWE_A_H_\n#define _LWE_A_H_\n\n");
   fprintf(f, "uint32_t lwe_a[1024 * 1024] = {\n");
   for (i = 0; i < (1 << 18); i++) {
     fprintf(f, "  ");
@@ -45,7 +46,8 @@ int main(int argc, char *argv[]) {
     }
     fprintf(f, "\n");
   }
-  fprintf(f, "};");
+  fprintf(f, "};\n#endif /* _LWE_A_H_ */");
+  
   fclose(f);
   return (0);
 }
