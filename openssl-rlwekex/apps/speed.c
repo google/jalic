@@ -2488,6 +2488,22 @@ int MAIN(int argc, char **argv)
 				count, test_curves_bits[j], d);
 				ecdh_results[j][0]=d/(double)count;
 				rsa_count=count;
+				
+				// CUSTOM TIMING
+				pkey_print_message("","ecdh",
+				ecdh_c[j][1], 
+				test_curves_bits[j],
+				ECDH_SECONDS);
+				Time_F(START);
+				for (count=0,run=1; COND(ecdh_c[j][1]); count++) {
+				    EC_KEY_generate_key(ecdh_a[j]);
+				}
+				d=Time_F(STOP);
+				BIO_printf(bio_err, mr ? "+R7:%ld:%d:%.2f\n" :"%ld %d-bit ECDH key generations in %.2fs\n",
+				count, test_curves_bits[j], d);
+				ecdh_results[j][1]=d/(double)count;
+				rsa_count=count;
+				// END CUSTOM TIMING
 				}
 			}
 
@@ -2843,19 +2859,21 @@ show_res:
 		if (!ecdh_doit[k]) continue;
 		if (j && !mr)
 			{
-			printf("%30sop      op/s\n"," ");
+			printf("%30sop      op/s      keygen      keygen/s\n"," ");
 			j=0;
 			}
 		if (mr)
-			fprintf(stdout,"+F5:%u:%u:%f:%f\n",
+			fprintf(stdout,"+F5:%u:%u:%f:%f:%f:%f\n",
 				k, test_curves_bits[k],
-				ecdh_results[k][0], 1.0/ecdh_results[k][0]);
+				ecdh_results[k][0], 1.0/ecdh_results[k][0],
+				ecdh_results[k][1], 1.0/ecdh_results[k][1]);
 
 		else
-			fprintf(stdout,"%4u bit ecdh (%s) %8.4fs %8.1f\n",
+			fprintf(stdout,"%4u bit ecdh (%s) %8.4fs %8.1f %8.4fs %8.1f\n",
 				test_curves_bits[k],
 				test_curves_names[k],
-				ecdh_results[k][0], 1.0/ecdh_results[k][0]);
+				ecdh_results[k][0], 1.0/ecdh_results[k][0],
+				ecdh_results[k][1], 1.0/ecdh_results[k][1]);
 		}
 #endif
 
