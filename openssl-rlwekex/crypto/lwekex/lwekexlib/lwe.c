@@ -83,7 +83,7 @@ void lwe_sample_n_ct(uint32_t *s, int n) {
 // s (12 x 1024)
 void lwe_sample_ct(uint32_t *s) {
   RANDOM_VARS;
-  int i, j, k;
+  int i, j, k, index;
   for (k = 0; k < 12; k++) {
     for (i = 0; i < 16; i++) {
       uint64_t r = RANDOM64;
@@ -96,9 +96,11 @@ void lwe_sample_ct(uint32_t *s) {
 	r >>= 1;
 	m = 2 * m - 1;
 	// use the constant time version single_sample
-	s[(k * 16 + i) * 64 + j] = single_sample_ct(rnd);
-	t = 0xFFFFFFFF - s[j];
-	s[(k * 16 + i) * 64 + j] = ((t & (uint32_t) m) | (s[(k * 16 + i) * 64 + j] & (~((uint32_t) m))));
+	index = (k * 16 + i) * 64 + j;
+	s[index] = single_sample_ct(rnd);
+	// printf("    * %i: 0x%08X\n", index, s[index]);
+	t = 0xFFFFFFFF - s[index];
+	s[index] = ((t & (uint32_t) m) | (s[index] & (~((uint32_t) m))));
       }
     }
   }
@@ -163,8 +165,9 @@ void lwe_round2(uint64_t *out, const uint32_t *in) {
   //1 iff between q/4 and 3*q/4
   // extracting 128 bits from a 12 by 12 32-bits matrix, the number of elements in *in should be 144
   for (i = 0; i < 128; i++) {
-    // if (in[i] >= 1073741824 && in[i] <= 3221225471) {
-    if (((in[i] >> 30) & 1) + ((in[i] >> 31) & 1) == 1) {
+    // if (in[i] >= 1073741824 && in[i] <= 3221225471) { // from rlwe
+    // if (((in[i] >> 30) & 1) + ((in[i] >> 31) & 1) == 1) { // previous mechanism
+    if ((in[i] >> 31) & 1) { // previous mechanism
       setbit(out, i);
     }
   }
@@ -178,7 +181,8 @@ void lwe_round2_ct(uint64_t *out, const uint32_t *in) {
   memset((unsigned char *)out, 0, 16);
   // extracting 128 bits from a 12 by 12 32-bits matrix, the number of elements should be 144
   for (i = 0; i < 128; i++) {
-    uint32_t b = (((in[i] >> 30) & 1) + ((in[i] >> 31) & 1)) & 1;
+    // uint32_t b = (((in[i] >> 30) & 1) + ((in[i] >> 31) & 1)) & 1;
+    uint32_t b = ((in[i] >> 31) & 1);
     out[i / 64] |= (((uint64_t) b) << (uint64_t) (i % 64));
   }
 }
@@ -224,8 +228,10 @@ void lwe_rec(uint64_t *out, const uint32_t *w, const uint64_t *b) {
 	setbit(out, i);
       }
     } else {
-      // [q/8..5*q/8)
-      if (coswi >= (uint32_t) 536870912 && coswi < (uint32_t) 2684354560) {
+      // [5*q/8..q) and [0, q/8)
+      if (coswi >= (uint32_t) 2684354560 || coswi < (uint32_t) 536870912) {
+	// [q/8..5*q/8)
+	// if (coswi >= (uint32_t) 536870912 && coswi < (uint32_t) 2684354560) {
 	setbit(out, i);
       }
     }
@@ -239,7 +245,7 @@ void lwe_rec_ct(uint64_t *out, const uint32_t *w, const uint64_t *b) {
     uint32_t coswi;
     uint32_t B;
     coswi = w[i];
-    B = ((getbit(b, i) == 0 && coswi >= (uint32_t) 1610612736 && coswi < (uint32_t) 3758096384) || (getbit(b, i) == 1 && coswi >= (uint32_t) 536870912 && coswi < (uint32_t) 2684354560));
+    B = ((getbit(b, i) == 0 && coswi >= (uint32_t) 1610612736 && coswi < (uint32_t) 3758096384) || (getbit(b, i) == 1 && (coswi >= (uint32_t) 2684354560 || coswi < (uint32_t) 536870912)));
     out[i / 64] |= (((uint64_t) B) << (uint64_t) (i % 64));
   }
 }

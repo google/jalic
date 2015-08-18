@@ -89,14 +89,14 @@ uint64_t random64() {
 #include "lwekexlib/lwe.c"
 #include "lwekexlib/lwe_a.h"
 
-// #define DEBUG_LOGS
+#define DEBUG_LOGS
 
 int debug_printf(const char *format, ...) {
  #ifdef DEBUG_LOGS
 	va_list args;
 	int ret;
 	va_start(args, format);
-	ret = printf(format, args);
+	ret = vprintf(format, args);
 	va_end(args);
 	return ret;
 #else
@@ -409,11 +409,14 @@ int LWE_PAIR_generate_key(LWE_PAIR *key, LWE_CTX *ctx, char isForServer) {
 	lwe_sample(key->e);
 #endif
 	debug_printf("  secret S = ");
-	int i;
-	for (i = 0; i < 2; i++) {
-          debug_printf("0x%08X ", key->s[i]);
-        }
+	debug_printf("0x%08X ", key->s[0]);
+	debug_printf("0x%08X ", key->s[1]);
 	debug_printf("...0x%08X\n", key->s[1024 * 12 - 1]);
+
+	debug_printf("  secret E = ");
+	debug_printf("0x%08X ", key->e[0]);
+	debug_printf("0x%08X ", key->e[1]);
+	debug_printf("...0x%08X\n", key->e[1024 * 12 - 1]);
 
 	if (isForServer) {
           lwe_key_gen_server(key->pub->b, key->pub->param->a, key->s, key->e);
