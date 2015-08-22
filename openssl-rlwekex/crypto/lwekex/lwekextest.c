@@ -222,6 +222,7 @@ int main(int argc, char *argv[]) {
 			}
 			if ((iterations % 100) == 0) {
 				BIO_printf(out, "Iterations: %d, failures: %d, elapsed time: %ld\n", iterations, failures, time(NULL) - starttime);
+				if (iterations > (1 << 20)) break;
 			}
 		}
 	}

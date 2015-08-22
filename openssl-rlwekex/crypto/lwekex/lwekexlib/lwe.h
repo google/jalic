@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define LWE_REC_BITS 1
+#define LWE_REC_BITS 16
 // seems that nothing restricts the form of the modulus q, so we can stick to 2^32
 // which would simply mean that we will be using unsigned 32-bits integer
 

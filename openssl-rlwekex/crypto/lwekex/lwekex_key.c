@@ -89,7 +89,7 @@ uint64_t random64() {
 #include "lwekexlib/lwe.c"
 #include "lwekexlib/lwe_a.h"
 
-#define DEBUG_LOGS
+// #define DEBUG_LOGS
 
 int debug_printf(const char *format, ...) {
  #ifdef DEBUG_LOGS
@@ -408,6 +408,18 @@ int LWE_PAIR_generate_key(LWE_PAIR *key, LWE_CTX *ctx, char isForServer) {
 	lwe_sample(key->s);
 	lwe_sample(key->e);
 #endif
+	// find min/max S
+	int32_t signed_s_min = key->s[0], signed_s_max = key->s[0];
+	int i;
+	for (i = 0; i < 1024 * 12 - 1; i++) {
+	  if ((int32_t)key->s[i] < signed_s_min) {
+	    signed_s_min = (int32_t)key->s[i];
+	  }
+	  if ((int32_t)key->s[i] > signed_s_max) {
+	    signed_s_max = (int32_t)key->s[i];
+	  }
+	}
+	debug_printf("  secret S in [%i, %i]\n", signed_s_min, signed_s_max);
 	debug_printf("  secret S = ");
 	debug_printf("0x%08X ", key->s[0]);
 	debug_printf("0x%08X ", key->s[1]);
@@ -643,7 +655,9 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation, co
 	lwe_key_derive_client(v, peer_pub_key->b, priv_pub_key->s, eprimeprime); // can potentially pass a context in here
 	OPENSSL_free(eprimeprime);
 	for (i = 0; i < 12 * 12; i++) {
-          debug_printf("0x%08X ", v[i]);
+          //debug_printf("0x%08X ", v[i]);
+	  binary_printf(v[i], 32);
+	  debug_printf(" ");
         }
 	debug_printf("\n");
 	// printf("...0x%08X\n", v[12 * 12 - 1]);
@@ -651,7 +665,7 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation, co
 #if CONSTANT_TIME
         debug_printf("  Computing reconciliation: C = <V>_2\n"); // DEBUG LINE
 	lwe_crossround2_ct(reconciliation->c, v);
-        debug_printf("  Computing key K = [V]_2 = "); // DEBUG LINE
+        debug_printf("  Computing key K = [V]_2 = \n"); // DEBUG LINE
 	lwe_round2_ct(kb, v);
 #else
         debug_printf("  Computing reconciliation: C = <V>_2\n"); // DEBUG LINE
@@ -660,7 +674,9 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation, co
 	lwe_round2(kb, v);
 #endif
 	for (i = 0; i < 4; i++) {
-          debug_printf("0x%08X ", ((uint32_t *)kb)[i]);
+          // debug_printf("0x%08X ", ((uint32_t *)kb)[i]);
+	  binary_printf(kb[i], 64);
+	  debug_printf(" ");
 	}
 	debug_printf("\n");
 

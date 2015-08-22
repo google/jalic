@@ -157,7 +157,7 @@ void lwe_sample(uint32_t *s) {
 
 // [.]_2
 void lwe_round2(uint64_t *out, const uint32_t *in) {
-  int i;
+  int i, j, index;
 
   // out should have enough space for 128-bits //NB!
   memset((unsigned char *)out, 0, 16);
@@ -167,23 +167,60 @@ void lwe_round2(uint64_t *out, const uint32_t *in) {
   for (i = 0; i < 128; i++) {
     // if (in[i] >= 1073741824 && in[i] <= 3221225471) { // from rlwe
     // if (((in[i] >> 30) & 1) + ((in[i] >> 31) & 1) == 1) { // previous mechanism
-    if ((in[i] >> 31) & 1) { // previous mechanism
-      setbit(out, i);
+    for (j = 0; j < LWE_REC_BITS; j++) {
+      index = i * LWE_REC_BITS + j;
+      if (index > 128) {
+	return;
+      }
+      if ((in[i] >> (32 - LWE_REC_BITS + j)) & 1) { // previous mechanism
+	setbit(out, index);
+      }
     }
   }
+}
+
+// #define DEBUG_LOGS
+void binary_printf(uint64_t n, int bits_num) {
+ #ifdef DEBUG_LOGS
+  int i = 0;
+  while (n) {
+    if (n & 1) printf("1");
+    else printf("0");
+    n >>= 1;
+    i++;
+  }
+  for (; i < bits_num; i++) {
+    printf("0");
+  }
+#endif /* DEBUG_LOGS */
 }
 
 /* Constant time version. */
 // [.]_2
 void lwe_round2_ct(uint64_t *out, const uint32_t *in) {
-  int i;
+  int i, j, index;
   // out should have enough space for 128-bits //NB!
   memset((unsigned char *)out, 0, 16);
   // extracting 128 bits from a 12 by 12 32-bits matrix, the number of elements should be 144
   for (i = 0; i < 128; i++) {
     // uint32_t b = (((in[i] >> 30) & 1) + ((in[i] >> 31) & 1)) & 1;
-    uint32_t b = ((in[i] >> 31) & 1);
-    out[i / 64] |= (((uint64_t) b) << (uint64_t) (i % 64));
+    for (j = 0; j < LWE_REC_BITS; j++) {
+      index = i * LWE_REC_BITS + j;
+      if (index > 128) {
+	return;
+      }
+      uint32_t b = ((in[i] >> (32 - LWE_REC_BITS + j)) & 1);
+      out[index / 64] |= (((uint64_t) b) << (uint64_t) (index % 64));
+    }
+    /*
+    if (i < 5) {
+      binary_printf(in[i], 32);
+      printf(" -> ");
+      binary_printf(out[0], 64);
+      printf(" <- ");
+      binary_printf(in[i] >> (32 - LWE_REC_BITS), LWE_REC_BITS);
+      printf("\n");
+    } */
   }
 }
 
@@ -196,10 +233,10 @@ void lwe_crossround2(uint64_t *out, const uint32_t *in) {
   // in (12 x 12)
   // take first 128 elements of in and convert them to bits
   for (i = 0; i < 128; i++) {
-      //q/4 to q/2 and q/2 to q
-      if ((in[i] >> 30) & 1) {
-	setbit(out, i);
-      }
+    //q/4 to q/2 and q/2 to q
+    if ((in[i] >> (31 - LWE_REC_BITS)) & 1) {
+      setbit(out, i);
+    }
   }
 }
 
@@ -209,36 +246,26 @@ void lwe_crossround2_ct(uint64_t *out, const uint32_t *in) {
   memset((unsigned char *)out, 0, 16);
   for (i = 0; i < 128; i++) {
       uint32_t b;
-      b = (in[i] >> 30) & 1;
+      b = (in[i] >> (31 - LWE_REC_BITS)) & 1;
       out[(i) / 64] |= (((uint64_t) b) << (uint64_t) (i % 64));
+      /*
+    binary_printf(in[i], 32);
+    printf(" -> ");
+    binary_printf(out[i / 64], 64);
+    printf(" <- ");
+    binary_printf((in[i] >> (31 - LWE_REC_BITS)) & 1, 1);
+    printf(" offset %i", (i % 64));
+    printf("\n");
+      */
   }
 }
 
 void lwe_rec(uint64_t *out, const uint32_t *w, const uint64_t *b) {
-  int i;
-
-  // out should have enough space for 128-bits
-  memset((unsigned char *)out, 0, 16);
-
-  for (i = 0; i < 128; i++) {
-    uint32_t coswi = w[i];
-    if (getbit(b, i) == 0) {
-      // [3*q/8..7*q/8)
-      if (coswi >= (uint32_t) 1610612736 && coswi < (uint32_t) 3758096384) {
-	setbit(out, i);
-      }
-    } else {
-      // [5*q/8..q) and [0, q/8)
-      if (coswi >= (uint32_t) 2684354560 || coswi < (uint32_t) 536870912) {
-	// [q/8..5*q/8)
-	// if (coswi >= (uint32_t) 536870912 && coswi < (uint32_t) 2684354560) {
-	setbit(out, i);
-      }
-    }
-  }
+  lwe_rec_ct(out, w, b);
 }
 
 void lwe_rec_ct(uint64_t *out, const uint32_t *w, const uint64_t *b) {
+  /*
   int i;
   memset((unsigned char *)out, 0, 16);
   for (i = 0; i < 128; i++) {
@@ -247,6 +274,40 @@ void lwe_rec_ct(uint64_t *out, const uint32_t *w, const uint64_t *b) {
     coswi = w[i];
     B = ((getbit(b, i) == 0 && coswi >= (uint32_t) 1610612736 && coswi < (uint32_t) 3758096384) || (getbit(b, i) == 1 && (coswi >= (uint32_t) 2684354560 || coswi < (uint32_t) 536870912)));
     out[i / 64] |= (((uint64_t) B) << (uint64_t) (i % 64));
+  }
+  */
+  int i, j, index;
+
+  // out should have enough space for 128-bits
+  // TODO: restore constant time
+  memset((unsigned char *)out, 0, 16);
+  uint32_t E = 1 << (30 - LWE_REC_BITS); // q / 2^{2 + LWE_REC_BITS}
+  for (i = 0; i < 128; i++) {
+    uint32_t coswi = w[i];
+    if (getbit(b, i) == 1) {
+      coswi += (-E);
+    } else {
+      coswi += E;
+    }
+    // set the next LWE_REC_BITS of out to be equal to LWE_REC_BITS most significant bits of coswi
+    for (j = 0; j < LWE_REC_BITS; j++) {
+      index = i * LWE_REC_BITS + j;
+      if (index > 128) {
+	return;
+      }
+      uint32_t b = ((coswi >> (32 - LWE_REC_BITS + j)) & 1);
+      out[index / 64] |= (((uint64_t) b) << (uint64_t) (index % 64));
+    }
+    /*
+    if (i < 5) {
+      binary_printf(coswi, 32);
+      printf(" -> ");
+      binary_printf(out[0], 64);
+      printf(" <- ");
+      binary_printf(coswi >> (32 - LWE_REC_BITS), LWE_REC_BITS);
+      printf("\n");
+    }
+    */
   }
 }
 
