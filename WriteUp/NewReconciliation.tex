@@ -29,8 +29,8 @@ In the Section~\ref{sec:2bits} we describe the mechanism for extracting 2 bits (
 \label{sec:2bits}
 Following the original idea of Peikert~\cite{P14} for element $v \in \Z_q$ we define functions
 \begin{align*}
-\lfloor \cdot \rceil_4: \Z_q \rightarrow \{0, 1, 2, 3\}\;\;\text{s.t.}\;\; \lfloor v \rceil_4 = \left\lfloor \frac{4}{q} x\right\rceil\\
-\langle \cdot \rangle_4: \Z_q \rightarrow \{0, 1\}\;\;\text{s.t.}\;\; \langle v \rangle_4 = \left\lfloor \frac{8}{q} \right\rfloor \mod 2
+\lfloor \cdot \rceil_4: \Z_q \rightarrow \{0, 1, 2, 3\}\;\;\text{s.t.}\;\; \lfloor v \rceil_4 = \left\lfloor \frac{4}{q} v\right\rceil\\
+\langle \cdot \rangle_4: \Z_q \rightarrow \{0, 1\}\;\;\text{s.t.}\;\; \langle v \rangle_4 = \left\lfloor \frac{8}{q} v \right\rfloor \mod 2
 \end{align*}
 
 We define disjoint intervals $I_0 := \{0, 1, \ldots, \frac{q}{4} - 1\}; I_k := I_0 + k \cdot \frac{q}{4}$, where $k \in \{1, 2, 3\}$.
@@ -56,7 +56,7 @@ The partition is shown on the picture below:
 \end{figure}
 
 \begin{claim}
-If $v \in \Z_q$ is uniformly random, then $\lfloor v \rceil_4$ is uniformly ramdom given $\langle v \rangle_4$.
+If $v \in \Z_q$ is uniformly random, then $\lfloor v \rceil_4$ is uniformly random given $\langle v \rangle_4$.
 \end{claim}
 \begin{proof}
 For any $b \in \{0, 1\}$, if we condition on $\langle v \rangle_4 = b$, then $v$ is uniform over $J_b \cup J_{2+b} \cup J_{4+b} \cup J_{6+b}$. If $v \in J_{b + 2k}$, then $\lfloor v \rceil_4 = k$, so $\lfloor v \rceil_4$ is uniformly random given $\langle v \rangle_4$.
@@ -79,8 +79,8 @@ Let $b = \langle v \rangle_4 \in \{0, 1\}$, so $v \in J_b \cup J_{2+b} \cup J_{4
 The approach described above can be generalized to extracting $B$ bits.
 We again define functions
 \begin{align*}
-\lfloor \cdot \rceil_{2^B}: \Z_q \rightarrow \{0, \ldots, 2^B - 1\}\;\;\text{s.t.}\;\; \lfloor v \rceil_{2^B} = \left\lfloor \frac{2^B}{q} x\right\rceil\\
-\langle \cdot \rangle_{2^B}: \Z_q \rightarrow \{0, 1\}\;\;\text{s.t.}\;\; \langle v \rangle_{2^B} = \left\lfloor \frac{2^{B+1}}{q} \right\rfloor \mod 2
+\lfloor \cdot \rceil_{2^B}: \Z_q \rightarrow \{0, \ldots, 2^B - 1\}\;\;\text{s.t.}\;\; \lfloor v \rceil_{2^B} = \left\lfloor \frac{2^B}{q} v\right\rceil\\
+\langle \cdot \rangle_{2^B}: \Z_q \rightarrow \{0, 1\}\;\;\text{s.t.}\;\; \langle v \rangle_{2^B} = \left\lfloor \frac{2^{B+1}}{q} v\right\rfloor \mod 2
 \end{align*}
 
 We again define $2^B$ intervals $\{I_k\}$ and $2^{B + 1}$ intervals $\{J_{2k + b}\}$ such that

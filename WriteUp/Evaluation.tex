@@ -39,7 +39,7 @@ Client uploads & $O(n \mbar)$\\ \hline
     160 bit ecdh (secp160r1)  & 0.2   & 0.2 \\ \hline
     192 bit ecdh (nistp192)   & 0.2   & 0.2 \\ \hline
     224 bit ecdh (nistp224)   & 0.3   & 0.2 \\ \hline
-    256 bit ecdh (nistp256)   & 0.6   & 0.3 \\ \hline
+    \textcolor{red}{256 bit ecdh (nistp256)}   & \textcolor{red}{0.3}   & \textcolor{red}{0.3} \\ \hline
     384 bit ecdh (nistp384)   & 1.2   & 0.6 \\ \hline
     521 bit ecdh (nistp521)   & 0.2   & 1.2 \\ \hline
     163 bit ecdh (nistk163)   & 0.2   & 0.2 \\ \hline
@@ -85,7 +85,7 @@ RLWE (128 bits security, deriving 1024 bits key)
     \begin{tabular}{| l | l | l |}
     \hline
     Client/Server keygen & Client shared & Server shared \\ \hline
-    0.674ms & 0.402ms & 0.119ms  \\ \hline
+    \textcolor{red}{0.674ms} & \textcolor{red}{0.402ms} & \textcolor{red}{0.119ms}  \\ \hline
     \end{tabular}
 \end{center}
 
@@ -122,7 +122,7 @@ LWE (128 bits security, deriving $128 = \nbar \mbar$ bits key)
     Server keygen & Client keygen & Client shared & Server shared \\ \hline
 %    15.7ms & 29.5ms & 0.2ms & 0.1ms \\ \hline
 %    \multicolumn{4}{c}{Store and use $A^T$ in generating client's key:} \\ \hline
-    15.9ms &   14.9ms &   0.147ms &   0.119ms \\ \hline
+    \textcolor{red}{15.9ms} &   \textcolor{red}{14.9ms} &   \textcolor{red}{0.147ms} &   \textcolor{red}{0.119ms} \\ \hline
     \end{tabular}
 \end{center}
 
@@ -180,5 +180,6 @@ Since everything scales proportionally to $\mbar$ and $\nbar$, we can draw the f
 \end{center}
 
 % Trying out to extract 16bits, number of failed handshakes: .
+Tried out $1048600 \approx 2^{20}$ key exchanges extracting 16 bits and 0 failed, so the bound can potentially be improved.
 
 \end{document}
