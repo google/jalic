@@ -38,7 +38,7 @@ struct lwe_pair_st {
 
 struct lwe_rec_st {
   int version;
-  uint64_t *c; // 2 (for 128 bits key)
+  unsigned char *c; // of size 16 (for 128 bits key)
   int references;
   int	flags;
 };

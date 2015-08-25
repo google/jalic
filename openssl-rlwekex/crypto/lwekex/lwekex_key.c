@@ -89,7 +89,7 @@ uint64_t random64() {
 #include "lwekexlib/lwe.c"
 #include "lwekexlib/lwe_a.h"
 
-// #define DEBUG_LOGS
+#define DEBUG_LOGS
 
 int debug_printf(const char *format, ...) {
  #ifdef DEBUG_LOGS
@@ -184,7 +184,7 @@ LWE_PUB *LWE_PUB_new(void) {
 	ret->references = 1;
 
 	ret->param = NULL;
-	ret->b = (uint32_t *) OPENSSL_malloc (1024 * 12 * sizeof (uint32_t));
+	ret->b = (uint32_t *) OPENSSL_malloc (LWE_N * LWE_N_HAT * sizeof (uint32_t));
 
 	return (ret);
 }
@@ -204,9 +204,9 @@ LWE_PUB *LWE_PUB_copy(LWE_PUB *dest, const LWE_PUB *src) {
 	/* copy the public key */
 	if (src->b) {
 		if (!dest->b) {
-			dest->b = OPENSSL_malloc(1024 * 12 * sizeof (uint32_t));
+			dest->b = OPENSSL_malloc(LWE_N * LWE_N_HAT * sizeof (uint32_t));
 		}
-		memcpy(dest->b, src->b, 1024 * 12 * sizeof (uint32_t));
+		memcpy(dest->b, src->b, LWE_N * LWE_N_HAT * sizeof (uint32_t));
 	}
 
 	/* copy the rest */
@@ -235,7 +235,7 @@ void LWE_PUB_free(LWE_PUB *r) {
 
 	LWE_PARAM_free(r->param);
 
-	OPENSSL_cleanse(r->b, 1024 * 12 * sizeof (uint32_t));
+	OPENSSL_cleanse(r->b, LWE_N * LWE_N_HAT * sizeof (uint32_t));
 	OPENSSL_free(r->b);
 
 	OPENSSL_cleanse((void *)r, sizeof(LWE_PUB));
@@ -259,8 +259,8 @@ LWE_PAIR *LWE_PAIR_new(void) {
 
 	ret->pub = NULL;
 
-	ret->s = (uint32_t *) OPENSSL_malloc (1024 * 12 * sizeof (uint32_t));
-	ret->e = (uint32_t *) OPENSSL_malloc (1024 * 12 * sizeof (uint32_t));
+	ret->s = (uint32_t *) OPENSSL_malloc (LWE_N * LWE_N_HAT * sizeof (uint32_t));
+	ret->e = (uint32_t *) OPENSSL_malloc (LWE_N * LWE_N_HAT * sizeof (uint32_t));
 
 	return (ret);
 }
@@ -285,15 +285,15 @@ LWE_PAIR *LWE_PAIR_copy(LWE_PAIR *dest, const LWE_PAIR *src) {
 	/* copy the private key */
 	if (src->s) {
 		if (!dest->s) {
-			dest->s = OPENSSL_malloc(1024 * 12 * sizeof (uint32_t));
+			dest->s = OPENSSL_malloc(LWE_N * LWE_N_HAT * sizeof (uint32_t));
 		}
-		memcpy(dest->s, src->s, 1024 * 12 * sizeof (uint32_t));
+		memcpy(dest->s, src->s, LWE_N * LWE_N_HAT * sizeof (uint32_t));
 	}
 	if (src->e) {
 		if (!dest->e) {
-			dest->e = OPENSSL_malloc(1024 * 12 * sizeof (uint32_t));
+			dest->e = OPENSSL_malloc(LWE_N * LWE_N_HAT * sizeof (uint32_t));
 		}
-		memcpy(dest->e, src->e, 1024 * 12 * sizeof (uint32_t));
+		memcpy(dest->e, src->e, LWE_N * LWE_N_HAT * sizeof (uint32_t));
 	}
 
 	/* copy the rest */
@@ -333,9 +333,9 @@ void LWE_PAIR_free(LWE_PAIR *r) {
 
 	LWE_PUB_free(r->pub);
 
-	OPENSSL_cleanse(r->s, 1024 * 12 * sizeof (uint32_t));
+	OPENSSL_cleanse(r->s, LWE_N * LWE_N_HAT * sizeof (uint32_t));
 	OPENSSL_free(r->s);
-	OPENSSL_cleanse(r->e, 1024 * 12 * sizeof (uint32_t));
+	OPENSSL_cleanse(r->e, LWE_N * LWE_N_HAT * sizeof (uint32_t));
 	OPENSSL_free(r->e);
 
 	OPENSSL_cleanse((void *)r, sizeof(LWE_PAIR));
@@ -357,7 +357,7 @@ LWE_REC *LWE_REC_new(void) {
 	ret->flags = 0;
 	ret->references = 1;
 
-	ret->c = (uint64_t *) malloc (2 * sizeof (uint64_t));
+	ret->c = (unsigned char *) malloc ((LWE_KEY_LENGTH >> 3) * sizeof (unsigned char));
 
 	return (ret);
 }
@@ -379,7 +379,7 @@ void LWE_REC_free(LWE_REC *r) {
 	}
 #endif
 
-	OPENSSL_cleanse(r->c, 2 * sizeof (uint64_t));
+	OPENSSL_cleanse(r->c, (LWE_KEY_LENGTH >> 3) * sizeof (unsigned char));
 	OPENSSL_free(r->c);
 
 	OPENSSL_cleanse((void *)r, sizeof(LWE_REC));
@@ -411,7 +411,7 @@ int LWE_PAIR_generate_key(LWE_PAIR *key, LWE_CTX *ctx, char isForServer) {
 	// find min/max S
 	int32_t signed_s_min = key->s[0], signed_s_max = key->s[0];
 	int i;
-	for (i = 0; i < 1024 * 12 - 1; i++) {
+	for (i = 0; i < LWE_N * LWE_N_HAT - 1; i++) {
 	  if ((int32_t)key->s[i] < signed_s_min) {
 	    signed_s_min = (int32_t)key->s[i];
 	  }
@@ -423,12 +423,12 @@ int LWE_PAIR_generate_key(LWE_PAIR *key, LWE_CTX *ctx, char isForServer) {
 	debug_printf("  secret S = ");
 	debug_printf("0x%08X ", key->s[0]);
 	debug_printf("0x%08X ", key->s[1]);
-	debug_printf("...0x%08X\n", key->s[1024 * 12 - 1]);
+	debug_printf("...0x%08X\n", key->s[LWE_N * LWE_N_HAT - 1]);
 
 	debug_printf("  secret E = ");
 	debug_printf("0x%08X ", key->e[0]);
 	debug_printf("0x%08X ", key->e[1]);
-	debug_printf("...0x%08X\n", key->e[1024 * 12 - 1]);
+	debug_printf("...0x%08X\n", key->e[LWE_N * LWE_N_HAT - 1]);
 
 	if (isForServer) {
           lwe_key_gen_server(key->pub->b, key->pub->param->a, key->s, key->e);
@@ -456,12 +456,12 @@ LWE_PUB *o2i_LWE_PUB(LWE_PUB **pub, const unsigned char *in, long len) {
     return 0;
   }
 
-  if (len != 1024 * 4 * 12) {
+  if (len != LWE_N * LWE_N_HAT * 4) {
     RLWEKEXerr(RLWEKEX_F_O2I_RLWE_PUB, RLWEKEX_R_INVALID_LENGTH);
     return 0;
   }
 
-  for (i = 0; i < 1024 * 12; i++) {
+  for (i = 0; i < LWE_N * LWE_N_HAT; i++) {
     (*pub)->b[i] = (((uint32_t) in[4 * i + 0]) << 24) |
       (((uint32_t) in[4 * i + 1]) << 16) |
       (((uint32_t) in[4 * i + 2]) << 8) |
@@ -480,7 +480,7 @@ int i2o_LWE_PUB(LWE_PUB *pub, unsigned char **out) {
 		return 0;
 	}
 
-	buf_len = 1024 * 4 * 12;
+	buf_len = LWE_N * LWE_N_HAT * 4;
 
 	if (out == NULL || buf_len == 0)
 		/* out == NULL => just return the length of the octet string */
@@ -494,7 +494,7 @@ int i2o_LWE_PUB(LWE_PUB *pub, unsigned char **out) {
 		new_buffer = 1;
 	}
 
-	for (i = 0; i < 1024 * 12; i++) {
+	for (i = 0; i < LWE_N * LWE_N_HAT; i++) {
 		(*out)[4 * i + 0] = (unsigned char)  (pub->b[i] >> 24);
 		(*out)[4 * i + 1] = (unsigned char) ((pub->b[i] >> 16) & 0xff);
 		(*out)[4 * i + 2] = (unsigned char) ((pub->b[i] >>  8) & 0xff);
@@ -520,7 +520,7 @@ LWE_REC *o2i_LWE_REC(LWE_REC **rec, const unsigned char *in, long len) {
 	}
 
 	// 128 bits are embedded into 16 * 8-bits numbers
-	if (len != 16) {
+	if (len != (LWE_KEY_LENGTH >> 3)) {
 		RLWEKEXerr(RLWEKEX_F_O2I_RLWE_REC, RLWEKEX_R_INVALID_LENGTH);
 		return 0;
 	}
@@ -538,7 +538,7 @@ int i2o_LWE_REC(LWE_REC *rec, unsigned char **out) {
 		return 0;
 	}
 
-	buf_len = 16;
+	buf_len = (LWE_KEY_LENGTH >> 3);
 
 	if (out == NULL || buf_len == 0)
 		/* out == NULL => just return the length of the octet string */
@@ -576,22 +576,22 @@ int LWEKEX_compute_key_alice(void *out, size_t outlen, const LWE_PUB *peer_pub_k
 
 	int ret = -1;
 
-	uint32_t *w = (uint32_t *) OPENSSL_malloc (12 * 12 * sizeof (uint32_t));
-	uint64_t *ka  = (uint64_t *) OPENSSL_malloc (2 * sizeof (uint64_t));
+	uint32_t *w = (uint32_t *) OPENSSL_malloc (LWE_N_HAT * LWE_N_HAT * sizeof (uint32_t));
+	unsigned char *ka  = (unsigned char *) OPENSSL_malloc ((LWE_KEY_LENGTH >> 3) * sizeof (unsigned char));
 
 	// W = B'S
 	int i, j, k;
-	for (i = 0; i < 12; i++) {
-	  for (j = 0; j < 12; j++) {
-	    w[i * 12 + j] = 0;
-	    for (k = 0; k < 1024; k++) {
-	      w[i * 12 + j] += peer_pub_key->b[i * 1024 + k] * priv_pub_key->s[k * 12 + j];
+	for (i = 0; i < LWE_N_HAT; i++) {
+	  for (j = 0; j < LWE_N_HAT; j++) {
+	    w[i * LWE_N_HAT + j] = 0;
+	    for (k = 0; k < LWE_N; k++) {
+	      w[i * LWE_N_HAT + j] += peer_pub_key->b[i * LWE_N + k] * priv_pub_key->s[k * LWE_N_HAT + j];
 	    }
 	  }
 	}
 
         debug_printf("  Computing B'S = "); // DEBUG LINE
-	for (i = 0; i < 12 * 12; i++) {
+	for (i = 0; i < LWE_N_HAT * LWE_N_HAT; i++) {
 	    debug_printf("0x%08X ", w[i]);
 	}
 	debug_printf("\n");
@@ -603,21 +603,21 @@ int LWEKEX_compute_key_alice(void *out, size_t outlen, const LWE_PUB *peer_pub_k
 #endif
 
         debug_printf("  Computing key K = rec(B'S, C) = "); // DEBUG LINE
-	for (i = 0; i < 4; i++) {
-          debug_printf("0x%08X ", ((uint32_t *)ka)[i]);
+	for (i = 0; i < (LWE_KEY_LENGTH >> 3); i++) {
+          debug_printf("0x%02X ", ((unsigned char *)ka)[i]);
 	}
 	debug_printf("\n");
 
 	if (KDF != 0) {
-		if (KDF((unsigned char *) ka, 2 * sizeof(uint64_t), out, &outlen) == NULL) {
+		if (KDF((unsigned char *) ka, (LWE_KEY_LENGTH >> 3) * sizeof(unsigned char), out, &outlen) == NULL) {
 			RLWEKEXerr(RLWEKEX_F_RLWEKEX_COMPUTE_KEY_ALICE, RLWEKEX_R_KDF_FAILED);
 			goto err;
 		}
 		ret = outlen;
 	} else {
 		/* no KDF, just copy as much as we can */
-		if (outlen > 2 * sizeof(uint64_t))
-			outlen = 2 * sizeof(uint64_t);
+		if (outlen > (LWE_KEY_LENGTH >> 3) * sizeof(unsigned char))
+			outlen = (LWE_KEY_LENGTH >> 3) * sizeof(unsigned char);
 		memcpy(out, (unsigned char *) ka, outlen);
 		ret = outlen;
 	}
@@ -635,26 +635,26 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation, co
 	int i;
 	int ret = -1;
 
-	uint32_t *v  = (uint32_t *) OPENSSL_malloc (12 * 12 * sizeof (uint32_t));
-	uint64_t *kb = (uint64_t *) OPENSSL_malloc (2 * sizeof (uint64_t));
+	uint32_t *v  = (uint32_t *) OPENSSL_malloc (LWE_N_HAT * LWE_N_HAT * sizeof (uint32_t));
+	unsigned char *kb = (unsigned char *) OPENSSL_malloc ((LWE_KEY_LENGTH >> 3) * sizeof (unsigned char));
 
-	uint32_t *eprimeprime = (uint32_t *) OPENSSL_malloc (12 * 12 * sizeof (uint32_t));
-        debug_printf("  Sampling Gaussian noise E'' (%i elements) = ", 12 * 12); // DEBUG LINE
+	uint32_t *eprimeprime = (uint32_t *) OPENSSL_malloc (LWE_N_HAT * LWE_N_HAT * sizeof (uint32_t));
+        debug_printf("  Sampling Gaussian noise E'' (%i elements) = ", LWE_N_HAT * LWE_N_HAT); // DEBUG LINE
 #if CONSTANT_TIME
-	lwe_sample_n_ct(eprimeprime, 12 * 12);
+	lwe_sample_n_ct(eprimeprime, LWE_N_HAT * LWE_N_HAT);
 #else
-	lwe_sample_n(eprimeprime, 12 * 12);
+	lwe_sample_n(eprimeprime, LWE_N_HAT * LWE_N_HAT);
 #endif
 	for (i = 0; i < 2; i++) {
           debug_printf("0x%08X ", eprimeprime[i]);
         }
-	debug_printf("...0x%08X\n", eprimeprime[12 * 12 - 1]);
+	debug_printf("...0x%08X\n", eprimeprime[LWE_N_HAT * LWE_N_HAT - 1]);
 	
         debug_printf("  Computing V = S'B + E'' = "); // DEBUG LINE
 
 	lwe_key_derive_client(v, peer_pub_key->b, priv_pub_key->s, eprimeprime); // can potentially pass a context in here
 	OPENSSL_free(eprimeprime);
-	for (i = 0; i < 12 * 12; i++) {
+	for (i = 0; i < LWE_N_HAT * LWE_N_HAT; i++) {
           //debug_printf("0x%08X ", v[i]);
 	  binary_printf(v[i], 32);
 	  debug_printf(" ");
@@ -673,23 +673,23 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation, co
         debug_printf("  Computing key K = [V]_2 = "); // DEBUG LINE
 	lwe_round2(kb, v);
 #endif
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < (LWE_KEY_LENGTH >> 3); i++) {
           // debug_printf("0x%08X ", ((uint32_t *)kb)[i]);
-	  binary_printf(kb[i], 64);
+	  binary_printf(kb[i], 8);
 	  debug_printf(" ");
 	}
 	debug_printf("\n");
 
 	if (KDF != 0) {
-		if (KDF((unsigned char *) kb, 2 * sizeof(uint64_t), out, &outlen) == NULL) {
+		if (KDF((unsigned char *) kb, (LWE_KEY_LENGTH >> 3) * sizeof(unsigned char), out, &outlen) == NULL) {
 			RLWEKEXerr(RLWEKEX_F_RLWEKEX_COMPUTE_KEY_BOB, RLWEKEX_R_KDF_FAILED);
 			goto err;
 		}
 		ret = outlen;
 	} else {
 		/* no KDF, just copy as much as we can */
-		if (outlen > 2 * sizeof(uint64_t))
-			outlen = 2 * sizeof(uint64_t);
+		if (outlen > (LWE_KEY_LENGTH >> 3) * sizeof(unsigned char))
+			outlen = (LWE_KEY_LENGTH >> 3) * sizeof(unsigned char);
 		memcpy(out, (unsigned char *) kb, outlen);
 		ret = outlen;
 	}
