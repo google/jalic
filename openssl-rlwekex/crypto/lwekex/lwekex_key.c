@@ -104,6 +104,21 @@ int debug_printf(const char *format, ...) {
 #endif /* DEBUG_LOGS */
 }
 
+void binary_printf(uint64_t n, int bits_num) {
+ #ifdef DEBUG_LOGS
+  int i = 0;
+  while (n) {
+    if (n & 1) printf("1");
+    else printf("0");
+    n >>= 1;
+    i++;
+  }
+  for (; i < bits_num; i++) {
+    printf("0");
+  }
+#endif /* DEBUG_LOGS */
+}
+
 /* Allocate and deallocate auxiliary variables (context) data structure */
 
 LWE_CTX *LWE_CTX_new(void) {
@@ -604,7 +619,8 @@ int LWEKEX_compute_key_alice(void *out, size_t outlen, const LWE_PUB *peer_pub_k
 
         debug_printf("  Computing key K = rec(B'S, C) = "); // DEBUG LINE
 	for (i = 0; i < (LWE_KEY_LENGTH >> 3); i++) {
-          debug_printf("0x%02X ", ((unsigned char *)ka)[i]);
+          // debug_printf("0x%02X ", ((unsigned char *)ka)[i]);
+	  binary_printf(ka[i], 8);
 	}
 	debug_printf("\n");
 
@@ -665,7 +681,7 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation, co
 #if CONSTANT_TIME
         debug_printf("  Computing reconciliation: C = <V>_2\n"); // DEBUG LINE
 	lwe_crossround2_ct(reconciliation->c, v);
-        debug_printf("  Computing key K = [V]_2 = \n"); // DEBUG LINE
+        debug_printf("  Computing key K = [V]_2 = "); // DEBUG LINE
 	lwe_round2_ct(kb, v);
 #else
         debug_printf("  Computing reconciliation: C = <V>_2\n"); // DEBUG LINE

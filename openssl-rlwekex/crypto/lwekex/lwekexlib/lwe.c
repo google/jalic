@@ -178,22 +178,6 @@ void lwe_round2(unsigned char *out, const uint32_t *in) {
   }
 }
 
-// #define DEBUG_LOGS
-void binary_printf(uint64_t n, int bits_num) {
- #ifdef DEBUG_LOGS
-  int i = 0;
-  while (n) {
-    if (n & 1) printf("1");
-    else printf("0");
-    n >>= 1;
-    i++;
-  }
-  for (; i < bits_num; i++) {
-    printf("0");
-  }
-#endif /* DEBUG_LOGS */
-}
-
 /* Constant time version. */
 // [.]_2
 void lwe_round2_ct(unsigned char *out, const uint32_t *in) {
@@ -258,11 +242,11 @@ void lwe_crossround2_ct(unsigned char *out, const uint32_t *in) {
   }
 }
 
-void lwe_rec(unsigned char *out, const uint32_t *w, const uint64_t *b) {
+void lwe_rec(unsigned char *out, const uint32_t *w, const unsigned char *b) {
   lwe_rec_ct(out, w, b);
 }
 
-void lwe_rec_ct(unsigned char *out, const uint32_t *w, const uint64_t *b) {
+void lwe_rec_ct(unsigned char *out, const uint32_t *w, const unsigned char *b) {
   /*
   int i;
   memset((unsigned char *)out, 0, 16);
