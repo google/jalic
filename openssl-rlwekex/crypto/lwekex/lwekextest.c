@@ -73,6 +73,9 @@ static int test_lwekex(BIO *out, int single) {
 	size_t asslen, bsslen;
 
 	int i, ret = 0;
+	int LWE_N_HAT = 4; // TODO: replace!!!
+	uint32_t *v  = (uint32_t *) OPENSSL_malloc (LWE_N_HAT * LWE_N_HAT * sizeof (uint32_t));
+	uint32_t *w  = (uint32_t *) OPENSSL_malloc (LWE_N_HAT * LWE_N_HAT * sizeof (uint32_t));
 
 	alice = LWE_PAIR_new();
 	bob = LWE_PAIR_new();
@@ -120,7 +123,7 @@ static int test_lwekex(BIO *out, int single) {
 	bsslen = KDF1_SHA1_len;
 	bssbuf = (unsigned char *)OPENSSL_malloc(bsslen);
 	bsslen = LWEKEX_compute_key_bob(bssbuf, bsslen, rec,
-					LWE_PAIR_get_publickey(alice), bob, KDF1_SHA1, ctx);
+					LWE_PAIR_get_publickey(alice), bob, KDF1_SHA1, ctx, v);
 	if (single) {
 		BIO_printf(out, "  key_B (%i bytes) = ", (int) bsslen);
 		for (i = 0; i < bsslen; i++) {
@@ -156,7 +159,7 @@ static int test_lwekex(BIO *out, int single) {
 
 	asslen = KDF1_SHA1_len;
 	assbuf = (unsigned char *)OPENSSL_malloc(asslen);
-	asslen = LWEKEX_compute_key_alice(assbuf, asslen, bob_reconstructed, rec_reconstructed, alice, KDF1_SHA1, ctx);
+	asslen = LWEKEX_compute_key_alice(assbuf, asslen, bob_reconstructed, rec_reconstructed, alice, KDF1_SHA1, ctx, w);
 	if (single) {
 		BIO_printf(out, "  key_A (%i bytes) = ", (int) asslen);
 		for (i = 0; i < asslen; i++) {
@@ -173,9 +176,45 @@ static int test_lwekex(BIO *out, int single) {
 		if (single) BIO_printf(out, "ok!\n");
 		ret = 1;
 	}
+
+	// computing the Hamming distance vector between v and w
+	uint32_t tmp, min;
+	BIO_printf(out, "Hamming distance between the keys: [");
+	for (i = 0; i < LWE_N_HAT * LWE_N_HAT; i++) {
+	  // computing MIN(v[i] - w[i], w[i] - v[i])
+	  min = v[i] - w[i];
+	  tmp = w[i] - v[i];
+	  if (tmp < min) min = tmp;
+	  BIO_printf(out, "%08X", min);
+	  if (i + 1 < LWE_N_HAT * LWE_N_HAT) BIO_printf(out, ", ");
+	}
+	BIO_printf(out, "]\n");
+	
+	// computing the number of the lsb bits corrupted by noise
+	BIO_printf(out, "The number of corrupted least significant bits (out of 32): [");
+	int count_bits = 0;
+	int max = 0;
+	for (i = 0; i < LWE_N_HAT * LWE_N_HAT; i++) {
+	  // computing MIN(v[i] - w[i], w[i] - v[i])
+	  min = v[i] - w[i];
+	  tmp = w[i] - v[i];
+	  if (tmp < min) min = tmp;
+	  count_bits = 0;
+	  while (min != 0) {
+	    count_bits++;
+	    min >>= 1;	    
+	  }
+	  if (count_bits > max) max = count_bits;
+	  BIO_printf(out, "%i", count_bits);
+	  if (i + 1 < LWE_N_HAT * LWE_N_HAT) BIO_printf(out, ", ");
+	}
+	BIO_printf(out, "], MAX = %i\n", max);
+
 err:
 	ERR_print_errors_fp(stderr);
 
+	OPENSSL_free(w);
+	OPENSSL_free(v);
 	OPENSSL_free(bssbuf);
 	OPENSSL_free(assbuf);
 	OPENSSL_free(apubbuf);

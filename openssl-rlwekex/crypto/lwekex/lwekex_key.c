@@ -89,7 +89,7 @@ uint64_t random64() {
 #include "lwekexlib/lwe.c"
 #include "lwekexlib/lwe_a.h"
 
-#define DEBUG_LOGS
+// #define DEBUG_LOGS
 
 int debug_printf(const char *format, ...) {
  #ifdef DEBUG_LOGS
@@ -587,11 +587,12 @@ int LWE_PAIR_has_privatekey(LWE_PAIR *pair) {
 
 /* Compute shared secret values */
 int LWEKEX_compute_key_alice(void *out, size_t outlen, const LWE_PUB *peer_pub_key,  const LWE_REC *peer_reconciliation,
-                              const LWE_PAIR *priv_pub_key, void *(*KDF)(const void *in, size_t inlen, void *out, size_t *outlen), LWE_CTX *ctx) {
+			     const LWE_PAIR *priv_pub_key, void *(*KDF)(const void *in, size_t inlen, void *out, size_t *outlen), LWE_CTX *ctx, uint32_t *w) {
 
 	int ret = -1;
+	int has_w = (w != NULL);
 
-	uint32_t *w = (uint32_t *) OPENSSL_malloc (LWE_N_HAT * LWE_N_HAT * sizeof (uint32_t));
+	if (!has_w) w = (uint32_t *) OPENSSL_malloc (LWE_N_HAT * LWE_N_HAT * sizeof (uint32_t));
 	unsigned char *ka  = (unsigned char *) OPENSSL_malloc ((LWE_KEY_LENGTH >> 3) * sizeof (unsigned char));
 
 	// W = B'S
@@ -639,19 +640,20 @@ int LWEKEX_compute_key_alice(void *out, size_t outlen, const LWE_PUB *peer_pub_k
 	}
 
 err:
-	if (w) OPENSSL_free(w);
+	if (w && !has_w) OPENSSL_free(w);
 	if (ka) OPENSSL_free(ka);
 	return (ret);
 
 }
 
 int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation, const LWE_PUB *peer_pub_key,  const LWE_PAIR *priv_pub_key,
-			   void *(*KDF)(const void *in, size_t inlen, void *out, size_t *outlen), LWE_CTX *ctx) {
+			   void *(*KDF)(const void *in, size_t inlen, void *out, size_t *outlen), LWE_CTX *ctx, uint32_t *v) {
 
 	int i;
 	int ret = -1;
+	int has_v = (v != NULL);
 
-	uint32_t *v  = (uint32_t *) OPENSSL_malloc (LWE_N_HAT * LWE_N_HAT * sizeof (uint32_t));
+	if (!has_v) v  = (uint32_t *) OPENSSL_malloc (LWE_N_HAT * LWE_N_HAT * sizeof (uint32_t));
 	unsigned char *kb = (unsigned char *) OPENSSL_malloc ((LWE_KEY_LENGTH >> 3) * sizeof (unsigned char));
 
 	uint32_t *eprimeprime = (uint32_t *) OPENSSL_malloc (LWE_N_HAT * LWE_N_HAT * sizeof (uint32_t));
@@ -711,7 +713,7 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation, co
 	}
 
 err:
-	if (v) OPENSSL_free(v);
+	if (v && !has_v) OPENSSL_free(v);
 	if (kb) OPENSSL_free(kb);
 	return (ret);
 

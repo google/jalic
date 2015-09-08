@@ -59,9 +59,9 @@ int LWE_PAIR_has_privatekey(LWE_PAIR *pair);
 
 /* Compute shared secret values */
 int LWEKEX_compute_key_alice(void *out, size_t outlen, const LWE_PUB *peer_pub_key,  const LWE_REC *peer_reconciliation,
-                              const LWE_PAIR *priv_pub_key, void *(*KDF)(const void *in, size_t inlen, void *out, size_t *outlen), LWE_CTX *ctx);
+			     const LWE_PAIR *priv_pub_key, void *(*KDF)(const void *in, size_t inlen, void *out, size_t *outlen), LWE_CTX *ctx, uint32_t *w);
 int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation, const LWE_PUB *peer_pub_key,  const LWE_PAIR *priv_pub_key,
-                            void *(*KDF)(const void *in, size_t inlen, void *out, size_t *outlen), LWE_CTX *ctx);
+                            void *(*KDF)(const void *in, size_t inlen, void *out, size_t *outlen), LWE_CTX *ctx, uint32_t *v);
 
 void print_first_element_REC(const LWE_REC *rec);
 

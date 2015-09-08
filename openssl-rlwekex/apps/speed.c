@@ -2690,7 +2690,7 @@ int MAIN(int argc, char **argv)
 					for (count=0,run=1; COND(lwekex_c[j][1]); count++)
 						{
 						LWEKEX_compute_key_bob(lwekex_secret_b, lwekex_secret_size_b, lwekex_rec[j], 
-							LWE_PAIR_get_publickey(lwekex_a[j]), lwekex_b[j], KDF1_SHA1, lwekex_ctx);
+								       LWE_PAIR_get_publickey(lwekex_a[j]), lwekex_b[j], KDF1_SHA1, lwekex_ctx, NULL);
 						}
 					d=Time_F(STOP);
 					BIO_printf(bio_err, mr ? "+R10:%ld:%d:%.2f\n" :"%ld n=%d LWE Bob shared secret in %.2fs\n",
@@ -2704,7 +2704,7 @@ int MAIN(int argc, char **argv)
 					for (count=0,run=1; COND(lwekex_c[j][2]); count++)
 						{
 						LWEKEX_compute_key_alice(lwekex_secret_a, lwekex_secret_size_a, 
-							LWE_PAIR_get_publickey(lwekex_b[j]), lwekex_rec[j], lwekex_a[j], KDF1_SHA1, lwekex_ctx);
+									 LWE_PAIR_get_publickey(lwekex_b[j]), lwekex_rec[j], lwekex_a[j], KDF1_SHA1, lwekex_ctx, NULL);
 						}
 					d=Time_F(STOP);
 					BIO_printf(bio_err, mr ? "+R11:%ld:%d:%.2f\n" :"%ld n=%d LWE Alice shared secret in %.2fs\n",

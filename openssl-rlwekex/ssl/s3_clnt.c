@@ -3074,7 +3074,7 @@ int ssl3_send_client_key_exchange(SSL *s)
 					goto err;					
 				}
 
-				nprime_lwe = LWEKEX_compute_key_bob(pprime_lwe, 256, clnt_lwerec, srvr_lwepub, clnt_lwe, NULL, lwe_ctx);
+				nprime_lwe = LWEKEX_compute_key_bob(pprime_lwe, 256, clnt_lwerec, srvr_lwepub, clnt_lwe, NULL, lwe_ctx, NULL);
 				if (nprime_lwe <= 0)
 					{
 					SSLerr(SSL_F_SSL3_SEND_CLIENT_KEY_EXCHANGE, ERR_R_RLWE_LIB);
@@ -3324,7 +3324,7 @@ int ssl3_send_client_key_exchange(SSL *s)
 			 * make sure to clear it out afterwards
 			 */
 
-			n = LWEKEX_compute_key_bob(p, 256, clnt_lwerec, srvr_lwepub, clnt_lwe, NULL, lwe_ctx);
+			n = LWEKEX_compute_key_bob(p, 256, clnt_lwerec, srvr_lwepub, clnt_lwe, NULL, lwe_ctx, NULL);
 			if (n <= 0)
 				{
 				SSLerr(SSL_F_SSL3_SEND_CLIENT_KEY_EXCHANGE, ERR_R_RLWE_LIB);
