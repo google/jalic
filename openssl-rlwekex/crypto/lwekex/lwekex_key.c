@@ -129,9 +129,6 @@ LWE_CTX *LWE_CTX_new(void) {
 		return (NULL);
 	}
 	return (ret);
-  err:
-  	OPENSSL_free(ret);
-  	return (NULL);
 }
 
 void LWE_CTX_free(LWE_CTX *r) {

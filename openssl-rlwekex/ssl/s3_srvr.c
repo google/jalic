@@ -3169,11 +3169,11 @@ int ssl3_get_client_key_exchange(SSL *s)
 #ifdef OPENSSL_HYBRID_LWE_ECDHE
 		if (alg_k & SSL_kLWE) {
 			/* Compute the shared pre-master secret */
-			if ((pprime_lwe = OPENSSL_malloc(256)) == NULL) {
+			if ((pprime_lwe = OPENSSL_malloc(128)) == NULL) {
 				SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE, ERR_R_MALLOC_FAILURE);
 				goto err;
 			}
-			nprime_lwe = LWEKEX_compute_key_alice(pprime_lwe, 256, clnt_lwe_pub, clnt_lwe_rec, srvr_lwe, NULL, lwe_ctx, NULL);
+			nprime_lwe = LWEKEX_compute_key_alice(pprime_lwe, 128, clnt_lwe_pub, clnt_lwe_rec, srvr_lwe, NULL, lwe_ctx, NULL);
 			if (nprime_lwe <= 0)
 				{
 				SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE, ERR_R_RLWE_LIB);
@@ -3343,7 +3343,7 @@ int ssl3_get_client_key_exchange(SSL *s)
 
 		/* Compute the shared pre-master secret */
 
-		n = LWEKEX_compute_key_alice(p, 256, clnt_lwe_pub, clnt_lwe_rec, srvr_lwe, NULL, lwe_ctx, NULL);
+		n = LWEKEX_compute_key_alice(p, 128, clnt_lwe_pub, clnt_lwe_rec, srvr_lwe, NULL, lwe_ctx, NULL);
 		if (n <= 0)
 			{
 			SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE, ERR_R_RLWE_LIB);
