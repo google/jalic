@@ -163,11 +163,11 @@ void lwe_round2(unsigned char *out, const uint32_t *in) {
   memset((unsigned char *)out, 0, LWE_KEY_LENGTH >> 3); // 128 >> 3 = 16
 
   // 1 iff between q/4 and 3*q/4
-  for (i = 0; i < LWE_KEY_LENGTH; i++) {
+  for (i = 0; i < LWE_N_HAT * LWE_N_HAT; i++) {
     // if (in[i] >= 1073741824 && in[i] <= 3221225471) { // from rlwe
     // if (((in[i] >> 30) & 1) + ((in[i] >> 31) & 1) == 1) { // previous mechanism
     for (j = 0; j < LWE_REC_BITS; j++) {
-      if (index > LWE_KEY_LENGTH) {
+      if (index >= LWE_KEY_LENGTH) {
 	return;
       }
       if ((in[i] >> (32 - LWE_REC_BITS + j)) & 1) { // previous mechanism
@@ -184,11 +184,11 @@ void lwe_round2_ct(unsigned char *out, const uint32_t *in) {
   int i, j, index;
   // out should have enough space for 128-bits //NB!
   memset((unsigned char *)out, 0, LWE_KEY_LENGTH >> 3);
-  for (i = 0; i < LWE_KEY_LENGTH; i++) {
+  for (i = 0; i < LWE_N_HAT * LWE_N_HAT; i++) {
     // uint32_t b = (((in[i] >> 30) & 1) + ((in[i] >> 31) & 1)) & 1;
     for (j = 0; j < LWE_REC_BITS; j++) {
       index = i * LWE_REC_BITS + j;
-      if (index > LWE_KEY_LENGTH) {
+      if (index >= LWE_KEY_LENGTH) {
 	return;
       }
       uint32_t b = ((in[i] >> (32 - LWE_REC_BITS + j)) & 1);
@@ -276,7 +276,7 @@ void lwe_rec_ct(unsigned char *out, const uint32_t *w, const unsigned char *b) {
       uint32_t b = ((coswi >> (32 - LWE_REC_BITS + j)) & 1);
       out[index / 8] |= (((unsigned char) b) << (unsigned char) (index % 8));
       index++;
-      if (index > LWE_KEY_LENGTH) {
+      if (index >= LWE_KEY_LENGTH) {
 	return;
       }
     }

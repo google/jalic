@@ -619,6 +619,7 @@ int LWEKEX_compute_key_alice(void *out, size_t outlen, const LWE_PUB *peer_pub_k
 	for (i = 0; i < (LWE_KEY_LENGTH >> 3); i++) {
           // debug_printf("0x%02X ", ((unsigned char *)ka)[i]);
 	  binary_printf(ka[i], 8);
+	  debug_printf(" ");
 	}
 	debug_printf("\n");
 

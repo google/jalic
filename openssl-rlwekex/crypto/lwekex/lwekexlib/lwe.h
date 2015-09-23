@@ -5,7 +5,7 @@
 
 #define LWE_REC_BITS 16
 #define LWE_N 1024 // should be dividable by 64, otherwise need to fix sampling functions
-#define LWE_N_HAT 4 // for a start we assume LWE_M_HAT = LWE_N_HAT, LWE_N_HAT * LWE_N_HAT should be divisable by 8
+#define LWE_N_HAT 3 // for a start we assume LWE_M_HAT = LWE_N_HAT, LWE_N_HAT * LWE_N_HAT should be divisable by 8
 #define LWE_KEY_LENGTH 128 // the length of the resulting key (TODO: make 256), should be LWE_KEY_LENGTH <= LWE_N_HAT * LWE_N_HAT, need to be a multiple of 8
 
 // seems that nothing restricts the form of the modulus q, so we can stick to 2^32
