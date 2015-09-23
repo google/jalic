@@ -1,3 +1,11 @@
+/*
+Copyright 2015 Google Inc. All Rights Reserved.
+
+Author: nikolaenko@google.com (Valeria Nikolaenko)
+Author: pseudorandom@google.com (Ananth Raghunathan)
+Author: mironov@google.com (Ilya Mironov)
+*/
+
 #include <stdio.h>
 #include <stdint.h>
 #include <openssl/rand.h>
@@ -23,6 +31,7 @@ int main(int argc, char *argv[]) {
   int i, j, index = 0;
   uint32_t lwe_a_transpose[1024 * 1024];
   uint32_t tmp;
+  fprintf(f, "/*\nCopyright 2015 Google Inc. All Rights Reserved.\n\nAuthor: nikolaenko@google.com (Valeria Nikolaenko)\nAuthor: pseudorandom@google.com (Ananth Raghunathan)\nAuthor: mironov@google.com (Ilya Mironov)\n*/\n");
   fprintf(f, "#ifndef _LWE_A_H_\n#define _LWE_A_H_\n\n");
   fprintf(f, "uint32_t lwe_a[1024 * 1024] = {\n");
   for (i = 0; i < (1 << 18); i++) {

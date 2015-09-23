@@ -1,3 +1,11 @@
+/*
+Copyright 2015 Google Inc. All Rights Reserved.
+
+Author: nikolaenko@google.com (Valeria Nikolaenko)
+Author: pseudorandom@google.com (Ananth Raghunathan)
+Author: mironov@google.com (Ilya Mironov)
+*/
+
 /* crypto/lwekex/lwekex_key.c */
 
 #include <string.h>
