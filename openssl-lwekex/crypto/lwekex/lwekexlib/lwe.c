@@ -19,7 +19,7 @@ Author: mironov@google.com (Ilya Mironov)
 #define getbit(a,x) (((a)[(x)/8] >> (unsigned char) ((x)%8)) & 1)
 #define clearbit(a,x) ((a)[(x)/8] &= ((~((unsigned char) 0)) - (((unsigned char) 1) << (unsigned char) ((x)%8))))
 
-#define RANDOM192(c) c[0] = RANDOM64; c[1] = RANDOM64; c[2] = RANDOM64
+#define RANDOM192(c) c[0] = RANDOM64; c[1] = RANDOM64; c[2] = RANDOM64; 
 
 /* Returns 0 if a >= b
  * Returns 1 if a < b
@@ -35,17 +35,12 @@ static int cmplt_ct(uint64_t *a, uint64_t *b) {
 }
 
 static uint32_t single_sample(uint64_t *in) {
-  uint32_t lower_index = 0, this_index = 32, upper_index = 64;
-  int i;
-  for (i = 0; i < 6; i++) {
-    if (cmplt_ct(in, rlwe_table[this_index])) {
-      upper_index = this_index;
-    } else {
-      lower_index = this_index;
-    }
-    this_index = (lower_index + upper_index) / 2;
-  }
-  return lower_index;
+  int i = 1;
+  
+  while(cmplt_ct(rlwe_table[i], in))
+    i++;
+  
+  return i - 1;
 }
 
 /* Constant time version. */
@@ -76,7 +71,7 @@ void lwe_sample_n_ct(uint32_t *s, int n) {
       uint64_t rnd[3];
       int32_t m;
       uint32_t t;
-      RANDOM192(rnd);
+      RANDOMBUFF((unsigned char*)rnd, 24);
       m = (r & 1);
       r >>= 1;
       m = 2 * m - 1;
@@ -139,6 +134,8 @@ void lwe_sample_n(uint32_t *s, int n) {
   }
 }
 
+int randcounter = 0;
+
 // s (12 x 1024)
 void lwe_sample(uint32_t *s) {
   RANDOM_VARS;
@@ -149,7 +146,8 @@ void lwe_sample(uint32_t *s) {
       for (j = 0; j < 64; j++) {
 	uint64_t rnd[3];
 	int32_t m;
-	RANDOM192(rnd);
+	RANDOMBUFF((unsigned char*)rnd, 24);
+	
 	m = (r & 1);
 	r >>= 1;
 	m = 2 * m - 1;
