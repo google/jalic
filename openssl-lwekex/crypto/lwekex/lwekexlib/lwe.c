@@ -35,12 +35,12 @@ static int cmplt_ct(uint64_t *a, uint64_t *b) {
 }
 
 static uint32_t single_sample(uint64_t *in) {
-  int i = 1;
+  int i = 0;
   
-  while(cmplt_ct(rlwe_table[i], in))
+  while(cmplt_ct(rlwe_table[i], in)) // ~3.5 comparisons in expectation
     i++;
   
-  return i - 1;
+  return i;
 }
 
 /* Constant time version. */
@@ -134,8 +134,6 @@ void lwe_sample_n(uint32_t *s, int n) {
   }
 }
 
-int randcounter = 0;
-
 // s (12 x 1024)
 void lwe_sample(uint32_t *s) {
   RANDOM_VARS;
@@ -143,19 +141,15 @@ void lwe_sample(uint32_t *s) {
   for (k = 0; k < LWE_N_HAT; k++) {
     for (i = 0; i < (LWE_N >> 6); i++) { // 1024 >> 6 = 16
       uint64_t r = RANDOM64;
+      uint64_t rnd[3 * 64];
+      RANDOMBUFF((unsigned char*)rnd, sizeof(rnd));
+     
       for (j = 0; j < 64; j++) {
-	uint64_t rnd[3];
-	int32_t m;
-	RANDOMBUFF((unsigned char*)rnd, 24);
-	
-	m = (r & 1);
-	r >>= 1;
-	m = 2 * m - 1;
-	s[index] = single_sample(rnd);
-	if (m == -1) {
-	  s[index] = 0xFFFFFFFF - s[index];
-	}
-	index++;
+        s[index] = single_sample(rnd + 3 * j);
+        if (r & (1 << j)) {
+          s[index] = 0xFFFFFFFF - s[index];
+        }
+        index++;
       }
     }
   }
@@ -356,7 +350,7 @@ void lwe_key_derive_client(uint32_t *out, const uint32_t *b, const uint32_t *s, 
     for (i = 0; i < LWE_N_HAT; i++) {
       out[k * LWE_N_HAT + i] = e[k * LWE_N_HAT + i];
       for (j = 0; j < LWE_N; j++) {
-	out[k * LWE_N_HAT + i] += s[k * LWE_N + j] * b[j * LWE_N_HAT + i];
+        out[k * LWE_N_HAT + i] += s[k * LWE_N + j] * b[j * LWE_N_HAT + i];
       }
     }
   }
