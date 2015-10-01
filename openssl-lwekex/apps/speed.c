@@ -2884,7 +2884,7 @@ show_res:
 		if (!rlwekex_doit[k]) continue;
 		if (j && !mr)
 			{
-			printf("%19skeygen   keygen/s   Bob shared      Bob/s   Alice shared    Alice/s\n"," ");
+			printf("%19mskeygen   keygen/s   Client shared      Client/s   Server shared    Server/s\n"," ");
 			j=0;
 			}
 		if (mr)
@@ -2893,11 +2893,11 @@ show_res:
 				rlwekex_results[k][0], rlwekex_results[k][1], rlwekex_results[k][2]);
 
 		else
-			fprintf(stdout,"rlwe n=%4u     %8.6fs    %8.1f   %8.6fs   %8.1f      %8.6fs   %8.1f\n",
+			fprintf(stdout,"rlwe n=%4u     %8.6fms    %8.1f   %8.6fms   %8.1f      %8.6fms   %8.1f\n",
 				1024,
-				rlwekex_results[k][0], 1.0/rlwekex_results[k][0],
-				rlwekex_results[k][1], 1.0/rlwekex_results[k][1],
-				rlwekex_results[k][2], 1.0/rlwekex_results[k][2]);
+				rlwekex_results[k][0] * 1000, 1.0/rlwekex_results[k][0],
+				rlwekex_results[k][1] * 1000, 1.0/rlwekex_results[k][1],
+				rlwekex_results[k][2] * 1000, 1.0/rlwekex_results[k][2]);
 		}
 #endif
 #ifndef OPENSSL_NO_LWEKEX
@@ -2924,10 +2924,10 @@ show_res:
 				lwekex_results[k][2], 1.0/lwekex_results[k][2],
 				lwekex_results[k][3], 1.0/lwekex_results[k][3]);
 		    */
-		    printf("Alice keygen:     %8.4fs\nBob keygen:       %8.4fs\nAlice keygen/s: %8.1f\nBob keygen/s:   %8.1f\nBob shared:     %8.4fs\nAlice shared:     %8.4fs\nBob/s:         %8.1f\nAlice/s:         %8.1f\n",
-			   lwekex_results[k][0], lwekex_results[k][1], 
+		    printf("Server keygen:     %8.4fms\nClient keygen:       %8.4fms\nServer keygen/s: %8.1f\nClient keygen/s:   %8.1f\nClient shared:     %8.4fms\nServer shared:     %8.4fms\nClient/s:         %8.1f\nServer/s:         %8.1f\n",
+			   lwekex_results[k][0] * 1000, lwekex_results[k][1] * 1000, 
 			   1.0/lwekex_results[k][0], 1.0/lwekex_results[k][1],
-			   lwekex_results[k][2], lwekex_results[k][3],
+			   lwekex_results[k][2] * 1000, lwekex_results[k][3] * 1000,
 			   1.0/lwekex_results[k][2], 1.0/lwekex_results[k][3]);
 
 		    printf("\n\n%8.6fs & %8.6fs & %8.6fs & %8.6fs\n",
