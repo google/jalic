@@ -281,7 +281,7 @@ static double dsa_results[DSA_NUM][2];
 static double ecdsa_results[EC_NUM][2];
 #endif
 #ifndef OPENSSL_NO_ECDH
-static double ecdh_results[EC_NUM][1];
+static double ecdh_results[EC_NUM][2];
 #endif
 #ifndef OPENSSL_NO_RLWEKEX
 static double rlwekex_results[RLWEKEX_NUM][3];
