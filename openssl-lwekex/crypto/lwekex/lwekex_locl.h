@@ -13,7 +13,7 @@ Author: mironov@google.com (Ilya Mironov)
 
 #include <openssl/lwekex.h>
 
-#define CONSTANT_TIME 1
+#define CONSTANT_TIME 0
 
 #ifdef  __cplusplus
 extern "C" {

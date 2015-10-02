@@ -19,7 +19,7 @@ Author: mironov@google.com (Ilya Mironov)
 #define getbit(a,x) (((a)[(x)/8] >> (unsigned char) ((x)%8)) & 1)
 #define clearbit(a,x) ((a)[(x)/8] &= ((~((unsigned char) 0)) - (((unsigned char) 1) << (unsigned char) ((x)%8))))
 
-#define RANDOM192(c) c[0] = RANDOM64; c[1] = RANDOM64; c[2] = RANDOM64
+#define RANDOM192(c) c[0] = RANDOM64; c[1] = RANDOM64; c[2] = RANDOM64; 
 
 /* Returns 0 if a >= b
  * Returns 1 if a < b
@@ -35,17 +35,12 @@ static int cmplt_ct(uint64_t *a, uint64_t *b) {
 }
 
 static uint32_t single_sample(uint64_t *in) {
-  uint32_t lower_index = 0, this_index = 32, upper_index = 64;
-  int i;
-  for (i = 0; i < 6; i++) {
-    if (cmplt_ct(in, rlwe_table[this_index])) {
-      upper_index = this_index;
-    } else {
-      lower_index = this_index;
-    }
-    this_index = (lower_index + upper_index) / 2;
-  }
-  return lower_index;
+  int i = 0;
+  
+  while(cmplt_ct(rlwe_table[i], in)) // ~3.5 comparisons in expectation
+    i++;
+  
+  return i;
 }
 
 /* Constant time version. */
@@ -76,7 +71,7 @@ void lwe_sample_n_ct(uint32_t *s, int n) {
       uint64_t rnd[3];
       int32_t m;
       uint32_t t;
-      RANDOM192(rnd);
+      RANDOMBUFF((unsigned char*)rnd, 24);
       m = (r & 1);
       r >>= 1;
       m = 2 * m - 1;
@@ -146,18 +141,15 @@ void lwe_sample(uint32_t *s) {
   for (k = 0; k < LWE_N_HAT; k++) {
     for (i = 0; i < (LWE_N >> 6); i++) { // 1024 >> 6 = 16
       uint64_t r = RANDOM64;
+      uint64_t rnd[3 * 64];
+      RANDOMBUFF((unsigned char*)rnd, sizeof(rnd));
+     
       for (j = 0; j < 64; j++) {
-	uint64_t rnd[3];
-	int32_t m;
-	RANDOM192(rnd);
-	m = (r & 1);
-	r >>= 1;
-	m = 2 * m - 1;
-	s[index] = single_sample(rnd);
-	if (m == -1) {
-	  s[index] = 0xFFFFFFFF - s[index];
-	}
-	index++;
+        s[index] = single_sample(rnd + 3 * j);
+        if (r & (1 << j)) {
+          s[index] = 0xFFFFFFFF - s[index];
+        }
+        index++;
       }
     }
   }
@@ -303,17 +295,25 @@ void lwe_rec_ct(unsigned char *out, const uint32_t *w, const unsigned char *b) {
 
 // multiply by s on the right
 void lwe_key_gen_server(uint32_t *out, const uint32_t *a, const uint32_t *s, const uint32_t *e) {
-  // might want to optimize for array accesses - change the multiplication by 12 in the indices by switching to transposes
   // a (1024 x 1024)
   // s,e (1024 x 12)
   // out = as + e (1024 x 12)
-  int i, j, k, index = 0;
-  for (i = 0; i < LWE_N; i++) {
-    for (k = 0; k < LWE_N_HAT; k++) {
-      out[index] = e[index];
-      for (j = 0; j < LWE_N; j++) {
-	out[index] += a[i * LWE_N + j] * s[j * LWE_N_HAT + k];
-      }
+  size_t i, j, k, index = 0;
+  
+  // Make a temporary copy of s in the column-major order 
+  uint32_t s_transpose[LWE_N_HAT][LWE_N];
+  
+  for (j = 0; j < LWE_N; j++)
+    for (k = 0; k < LWE_N_HAT; k++)
+      s_transpose[k][j] = s[j * LWE_N_HAT + k];
+  
+  for (i = 0; i < LWE_N; i++) {    
+    for (k = 0; k < LWE_N_HAT; k++) {     
+      uint32_t sum = e[index];
+      for (j = 0; j < LWE_N; j++)
+        sum += a[i * LWE_N + j] * s_transpose[k][j];
+        
+      out[index] = sum;
       index++;
     }
   }
@@ -327,11 +327,13 @@ void lwe_key_gen_client(uint32_t *out, const uint32_t *a_transpose, const uint32
   int i, j, k, index = 0;
   for (k = 0; k < LWE_N_HAT; k++) {
     for (i = 0; i < LWE_N; i++) {
-      out[index] = e[index];
-      for (j = 0; j < LWE_N; j++) {
-	// out[index] += s[(k << 10) + j] * a[(j << 10) + i];
-	out[index] += s[k * LWE_N + j] * a_transpose[i * LWE_N + j];
-      }
+      uint32_t sum = e[index];
+
+      for (j = 0; j < LWE_N; j++)
+	      sum += s[k * LWE_N + j] * a_transpose[i * LWE_N + j];
+      
+      out[index] = sum;
+      
       index++;
     }
   }
@@ -348,7 +350,7 @@ void lwe_key_derive_client(uint32_t *out, const uint32_t *b, const uint32_t *s, 
     for (i = 0; i < LWE_N_HAT; i++) {
       out[k * LWE_N_HAT + i] = e[k * LWE_N_HAT + i];
       for (j = 0; j < LWE_N; j++) {
-	out[k * LWE_N_HAT + i] += s[k * LWE_N + j] * b[j * LWE_N_HAT + i];
+        out[k * LWE_N_HAT + i] += s[k * LWE_N + j] * b[j * LWE_N_HAT + i];
       }
     }
   }
