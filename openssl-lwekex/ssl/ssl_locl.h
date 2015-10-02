@@ -305,8 +305,8 @@
 #define SSL_kPSK		0x00000100L /* PSK */
 #define SSL_kGOST       0x00000200L /* GOST key exchange */
 #define SSL_kSRP        0x00000400L /* SRP */
-#define SSL_kRLWE		0x00000800L /* Ring Learning with Errors */
-#define SSL_kLWE		0x00001000L /* Learning with Errors NB! should be s.t. & 534 = 0 (the previous value of 0A00L will not work, will be appeared to be deprecated */
+#define SSL_kRLWE		0x00001000L /* Ring Learning with Errors */
+#define SSL_kLWE		0x00000800L /* Learning with Errors NB! should be s.t. & 534 = 0 (the previous value of 0A00L will not work, will be appeared to be deprecated */
 
 /* Bits for algorithm_auth (server authentication) */
 #define SSL_aRSA		0x00000001L /* RSA auth */

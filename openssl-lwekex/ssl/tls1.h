@@ -537,8 +537,8 @@ SSL_CTX_callback_ctrl(ssl,SSL_CTRL_SET_TLSEXT_TICKET_KEY_CB,(void (*)(void))cb)
 #endif
 
 /* LWE based ciphersuites */
-#define TLS1_CK_LWE_RSA_WITH_AES_128_GCM_SHA256        0x0300D004
-#define TLS1_CK_LWE_ECDSA_WITH_AES_128_GCM_SHA256      0x0300D005
+#define TLS1_CK_LWE_RSA_WITH_AES_128_GCM_SHA256        0x0300CC16 // 0x0300D004 // making cipher id compatible with third_party/openssl
+#define TLS1_CK_LWE_ECDSA_WITH_AES_128_GCM_SHA256      0x0300CC17 // 0x0300D005 // making cipher id compatible with third_party/openssl
 #ifdef OPENSSL_HYBRID_LWE_ECDHE
 #define TLS1_CK_LWE_ECDHE_RSA_WITH_AES_128_GCM_SHA256        0x0300D006
 #define TLS1_CK_LWE_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256      0x0300D007

@@ -737,6 +737,9 @@ static void ssl_cipher_get_disabled(unsigned long *mkey, unsigned long *auth, un
 #ifdef OPENSSL_NO_SRP
 	*mkey |= SSL_kSRP;
 #endif
+#ifdef OPENSSL_NO_LWEKEX
+	*mkey |= SSL_kLWE;
+#endif
 	/* Check for presence of GOST 34.10 algorithms, and if they
 	 * do not present, disable  appropriate auth and key exchange */
 	if (!get_optional_pkey_id("gost94")) {
