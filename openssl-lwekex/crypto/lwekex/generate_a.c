@@ -21,7 +21,7 @@ uint32_t random32() {
 }
 
 int main(int argc, char *argv[]) {
-  char *filename = (argc > 1) ? argv[1] : "lwekexlib/lwe_a.h";
+  char *filename = (argc > 1) ? argv[1] : "lwe_a.h";
   printf("Writing matrix to file %s\n", filename);
   FILE *f = fopen(filename, "wt");
   if (f == NULL) {

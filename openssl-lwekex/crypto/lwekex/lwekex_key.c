@@ -94,10 +94,9 @@ uint64_t random64() {
 }
 #endif
 */
-#include "lwekexlib/lwe.c"
-#include "lwekexlib/lwe_a.h"
+#include "lwe.c"
 
-// #define DEBUG_LOGS
+#define DEBUG_LOGS
 
 int debug_printf(const char *format, ...) {
  #ifdef DEBUG_LOGS

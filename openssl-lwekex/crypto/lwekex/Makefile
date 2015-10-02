@@ -95,5 +95,4 @@ lwekex_key.o: ../../include/openssl/opensslconf.h
 lwekex_key.o: ../../include/openssl/opensslv.h ../../include/openssl/ossl_typ.h
 lwekex_key.o: ../../include/openssl/rand.h ../../include/openssl/safestack.h
 lwekex_key.o: ../../include/openssl/stack.h ../../include/openssl/symhacks.h
-lwekex_key.o: lwekex_key.c lwekex_locl.h lwekexlib/lwe.c lwekexlib/lwe.h
-lwekex_key.o: lwekexlib/lwe_a.h lwekexlib/lwe_table.h
+lwekex_key.o: lwe.c lwe.h lwe_a.h lwe_table.h lwekex_key.c lwekex_locl.h

@@ -11,8 +11,8 @@ Author: mironov@google.com (Ilya Mironov)
 #include <string.h>
 #include <stdlib.h>
 
+#include "lwe_a.h"
 #include "lwe.h"
-
 #include "lwe_table.h"
 
 #define setbit(a,x) ((a)[(x)/8] |= (((unsigned char) 1) << (unsigned char) ((x)%8)))
