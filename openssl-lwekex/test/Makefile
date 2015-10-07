@@ -656,13 +656,13 @@ heartbeat_test.o: ../include/openssl/e_os2.h ../include/openssl/ec.h
 heartbeat_test.o: ../include/openssl/ecdh.h ../include/openssl/ecdsa.h
 heartbeat_test.o: ../include/openssl/err.h ../include/openssl/evp.h
 heartbeat_test.o: ../include/openssl/hmac.h ../include/openssl/kssl.h
-heartbeat_test.o: ../include/openssl/lhash.h ../include/openssl/obj_mac.h
-heartbeat_test.o: ../include/openssl/objects.h ../include/openssl/opensslconf.h
+heartbeat_test.o: ../include/openssl/lhash.h ../include/openssl/lwekex.h
+heartbeat_test.o: ../include/openssl/obj_mac.h ../include/openssl/objects.h
+heartbeat_test.o: ../include/openssl/opensslconf.h
 heartbeat_test.o: ../include/openssl/opensslv.h ../include/openssl/ossl_typ.h
 heartbeat_test.o: ../include/openssl/pem.h ../include/openssl/pem2.h
 heartbeat_test.o: ../include/openssl/pkcs7.h ../include/openssl/pqueue.h
 heartbeat_test.o: ../include/openssl/rlwekex.h ../include/openssl/rsa.h
-heartbeat_test.o: ../include/openssl/lwekex.h
 heartbeat_test.o: ../include/openssl/safestack.h ../include/openssl/sha.h
 heartbeat_test.o: ../include/openssl/srtp.h ../include/openssl/ssl.h
 heartbeat_test.o: ../include/openssl/ssl2.h ../include/openssl/ssl23.h
@@ -688,6 +688,16 @@ jpaketest.o: ../include/openssl/e_os2.h ../include/openssl/opensslconf.h
 jpaketest.o: ../include/openssl/opensslv.h ../include/openssl/ossl_typ.h
 jpaketest.o: ../include/openssl/safestack.h ../include/openssl/stack.h
 jpaketest.o: ../include/openssl/symhacks.h jpaketest.c
+lwekextest.o: ../e_os.h ../include/openssl/asn1.h ../include/openssl/bio.h
+lwekextest.o: ../include/openssl/bn.h ../include/openssl/crypto.h
+lwekextest.o: ../include/openssl/e_os2.h ../include/openssl/err.h
+lwekextest.o: ../include/openssl/lhash.h ../include/openssl/lwekex.h
+lwekextest.o: ../include/openssl/obj_mac.h ../include/openssl/objects.h
+lwekextest.o: ../include/openssl/opensslconf.h ../include/openssl/opensslv.h
+lwekextest.o: ../include/openssl/ossl_typ.h ../include/openssl/rand.h
+lwekextest.o: ../include/openssl/safestack.h ../include/openssl/sha.h
+lwekextest.o: ../include/openssl/stack.h ../include/openssl/symhacks.h
+lwekextest.o: lwekextest.c
 md2test.o: ../include/openssl/buffer.h ../include/openssl/crypto.h
 md2test.o: ../include/openssl/e_os2.h ../include/openssl/opensslconf.h
 md2test.o: ../include/openssl/opensslv.h ../include/openssl/ossl_typ.h
@@ -739,16 +749,6 @@ rlwekextest.o: ../include/openssl/rand.h ../include/openssl/rlwekex.h
 rlwekextest.o: ../include/openssl/safestack.h ../include/openssl/sha.h
 rlwekextest.o: ../include/openssl/stack.h ../include/openssl/symhacks.h
 rlwekextest.o: rlwekextest.c
-lwekextest.o: ../e_os.h ../include/openssl/asn1.h ../include/openssl/bio.h
-lwekextest.o: ../include/openssl/bn.h ../include/openssl/crypto.h
-lwekextest.o: ../include/openssl/e_os2.h ../include/openssl/err.h
-lwekextest.o: ../include/openssl/lhash.h ../include/openssl/obj_mac.h
-lwekextest.o: ../include/openssl/objects.h ../include/openssl/opensslconf.h
-lwekextest.o: ../include/openssl/opensslv.h ../include/openssl/ossl_typ.h
-lwekextest.o: ../include/openssl/rand.h ../include/openssl/lwekex.h
-lwekextest.o: ../include/openssl/safestack.h ../include/openssl/sha.h
-lwekextest.o: ../include/openssl/stack.h ../include/openssl/symhacks.h
-lwekextest.o: lwekextest.c
 rmdtest.o: ../e_os.h ../include/openssl/asn1.h ../include/openssl/bio.h
 rmdtest.o: ../include/openssl/crypto.h ../include/openssl/e_os2.h
 rmdtest.o: ../include/openssl/evp.h ../include/openssl/obj_mac.h
@@ -795,19 +795,20 @@ ssltest.o: ../include/openssl/ecdh.h ../include/openssl/ecdsa.h
 ssltest.o: ../include/openssl/engine.h ../include/openssl/err.h
 ssltest.o: ../include/openssl/evp.h ../include/openssl/hmac.h
 ssltest.o: ../include/openssl/kssl.h ../include/openssl/lhash.h
-ssltest.o: ../include/openssl/obj_mac.h ../include/openssl/objects.h
-ssltest.o: ../include/openssl/opensslconf.h ../include/openssl/opensslv.h
-ssltest.o: ../include/openssl/ossl_typ.h ../include/openssl/pem.h
-ssltest.o: ../include/openssl/pem2.h ../include/openssl/pkcs7.h
-ssltest.o: ../include/openssl/pqueue.h ../include/openssl/rand.h
-ssltest.o: ../include/openssl/rlwekex.h ../include/openssl/lwekex.h ../include/openssl/rsa.h
-ssltest.o: ../include/openssl/safestack.h ../include/openssl/sha.h
-ssltest.o: ../include/openssl/srp.h ../include/openssl/srtp.h
-ssltest.o: ../include/openssl/ssl.h ../include/openssl/ssl2.h
-ssltest.o: ../include/openssl/ssl23.h ../include/openssl/ssl3.h
-ssltest.o: ../include/openssl/stack.h ../include/openssl/symhacks.h
-ssltest.o: ../include/openssl/tls1.h ../include/openssl/x509.h
-ssltest.o: ../include/openssl/x509_vfy.h ../include/openssl/x509v3.h ssltest.c
+ssltest.o: ../include/openssl/lwekex.h ../include/openssl/obj_mac.h
+ssltest.o: ../include/openssl/objects.h ../include/openssl/opensslconf.h
+ssltest.o: ../include/openssl/opensslv.h ../include/openssl/ossl_typ.h
+ssltest.o: ../include/openssl/pem.h ../include/openssl/pem2.h
+ssltest.o: ../include/openssl/pkcs7.h ../include/openssl/pqueue.h
+ssltest.o: ../include/openssl/rand.h ../include/openssl/rlwekex.h
+ssltest.o: ../include/openssl/rsa.h ../include/openssl/safestack.h
+ssltest.o: ../include/openssl/sha.h ../include/openssl/srp.h
+ssltest.o: ../include/openssl/srtp.h ../include/openssl/ssl.h
+ssltest.o: ../include/openssl/ssl2.h ../include/openssl/ssl23.h
+ssltest.o: ../include/openssl/ssl3.h ../include/openssl/stack.h
+ssltest.o: ../include/openssl/symhacks.h ../include/openssl/tls1.h
+ssltest.o: ../include/openssl/x509.h ../include/openssl/x509_vfy.h
+ssltest.o: ../include/openssl/x509v3.h ssltest.c
 wp_test.o: ../include/openssl/crypto.h ../include/openssl/e_os2.h
 wp_test.o: ../include/openssl/opensslconf.h ../include/openssl/opensslv.h
 wp_test.o: ../include/openssl/ossl_typ.h ../include/openssl/safestack.h

@@ -1,4 +1,4 @@
-/* crypto/rlwekex/rlwekex_err.c */
+/* crypto/lwekex/lwekex_err.c */
 /* ====================================================================
  * Copyright (c) 1999-2011 The OpenSSL Project.  All rights reserved.
  *
@@ -60,54 +60,54 @@
 
 #include <stdio.h>
 #include <openssl/err.h>
-#include <openssl/rlwekex.h>
+#include <openssl/lwekex.h>
 
 /* BEGIN ERROR CODES */
 #ifndef OPENSSL_NO_ERR
 
-#define ERR_FUNC(func) ERR_PACK(ERR_LIB_RLWEKEX,func,0)
-#define ERR_REASON(reason) ERR_PACK(ERR_LIB_RLWEKEX,0,reason)
+#define ERR_FUNC(func) ERR_PACK(ERR_LIB_LWEKEX,func,0)
+#define ERR_REASON(reason) ERR_PACK(ERR_LIB_LWEKEX,0,reason)
 
-static ERR_STRING_DATA RLWEKEX_str_functs[]=
+static ERR_STRING_DATA LWEKEX_str_functs[]=
 	{
-{ERR_FUNC(RLWEKEX_F_I2O_RLWE_PUB),	"i2o_RLWE_PUB"},
-{ERR_FUNC(RLWEKEX_F_I2O_RLWE_REC),	"i2o_RLWE_REC"},
-{ERR_FUNC(RLWEKEX_F_O2I_RLWE_PUB),	"o2i_RLWE_PUB"},
-{ERR_FUNC(RLWEKEX_F_O2I_RLWE_REC),	"o2i_RLWE_REC"},
-{ERR_FUNC(RLWEKEX_F_RANDOM32),	"RANDOM32"},
-{ERR_FUNC(RLWEKEX_F_RANDOM64),	"RANDOM64"},
-{ERR_FUNC(RLWEKEX_F_RANDOM8),	"RANDOM8"},
-{ERR_FUNC(RLWEKEX_F_RLWEKEX_),	"RLWEKEX_"},
-{ERR_FUNC(RLWEKEX_F_RLWEKEX_COMPUTE_KEY_ALICE),	"RLWEKEX_compute_key_alice"},
-{ERR_FUNC(RLWEKEX_F_RLWEKEX_COMPUTE_KEY_BOB),	"RLWEKEX_compute_key_bob"},
-{ERR_FUNC(RLWEKEX_F_RLWE_CTX_NEW),	"RLWE_CTX_new"},
-{ERR_FUNC(RLWEKEX_F_RLWE_PAIR_COPY),	"RLWE_PAIR_copy"},
-{ERR_FUNC(RLWEKEX_F_RLWE_PAIR_NEW),	"RLWE_PAIR_new"},
-{ERR_FUNC(RLWEKEX_F_RLWE_PARAM_NEW),	"RLWE_PARAM_new"},
-{ERR_FUNC(RLWEKEX_F_RLWE_PUB_COPY),	"RLWE_PUB_copy"},
-{ERR_FUNC(RLWEKEX_F_RLWE_PUB_NEW),	"RLWE_PUB_new"},
-{ERR_FUNC(RLWEKEX_F_RLWE_REC_NEW),	"RLWE_REC_new"},
+{ERR_FUNC(LWEKEX_F_I2O_LWE_PUB),	"i2o_LWE_PUB"},
+{ERR_FUNC(LWEKEX_F_I2O_LWE_REC),	"i2o_LWE_REC"},
+{ERR_FUNC(LWEKEX_F_LWEKEX_),	"LWEKEX_"},
+{ERR_FUNC(LWEKEX_F_LWEKEX_COMPUTE_KEY_ALICE),	"LWEKEX_compute_key_alice"},
+{ERR_FUNC(LWEKEX_F_LWEKEX_COMPUTE_KEY_BOB),	"LWEKEX_compute_key_bob"},
+{ERR_FUNC(LWEKEX_F_LWE_CTX_NEW),	"LWE_CTX_new"},
+{ERR_FUNC(LWEKEX_F_LWE_PAIR_COPY),	"LWE_PAIR_copy"},
+{ERR_FUNC(LWEKEX_F_LWE_PAIR_NEW),	"LWE_PAIR_new"},
+{ERR_FUNC(LWEKEX_F_LWE_PARAM_NEW),	"LWE_PARAM_new"},
+{ERR_FUNC(LWEKEX_F_LWE_PUB_COPY),	"LWE_PUB_copy"},
+{ERR_FUNC(LWEKEX_F_LWE_PUB_NEW),	"LWE_PUB_new"},
+{ERR_FUNC(LWEKEX_F_LWE_REC_NEW),	"LWE_REC_new"},
+{ERR_FUNC(LWEKEX_F_O2I_LWE_PUB),	"o2i_LWE_PUB"},
+{ERR_FUNC(LWEKEX_F_O2I_LWE_REC),	"o2i_LWE_REC"},
+{ERR_FUNC(LWEKEX_F_RANDOM32),	"RANDOM32"},
+{ERR_FUNC(LWEKEX_F_RANDOM64),	"RANDOM64"},
+{ERR_FUNC(LWEKEX_F_RANDOM8),	"RANDOM8"},
 {0,NULL}
 	};
 
-static ERR_STRING_DATA RLWEKEX_str_reasons[]=
+static ERR_STRING_DATA LWEKEX_str_reasons[]=
 	{
-{ERR_REASON(RLWEKEX_R_INVALID_LENGTH)    ,"invalid length"},
-{ERR_REASON(RLWEKEX_R_KDF_FAILED)        ,"kdf failed"},
-{ERR_REASON(RLWEKEX_R_RANDOM_FAILED)     ,"random failed"},
+{ERR_REASON(LWEKEX_R_INVALID_LENGTH)     ,"invalid length"},
+{ERR_REASON(LWEKEX_R_KDF_FAILED)         ,"kdf failed"},
+{ERR_REASON(LWEKEX_R_RANDOM_FAILED)      ,"random failed"},
 {0,NULL}
 	};
 
 #endif
 
-void ERR_load_RLWEKEX_strings(void)
+void ERR_load_LWEKEX_strings(void)
 	{
 #ifndef OPENSSL_NO_ERR
 
-	if (ERR_func_error_string(RLWEKEX_str_functs[0].error) == NULL)
+	if (ERR_func_error_string(LWEKEX_str_functs[0].error) == NULL)
 		{
-		ERR_load_strings(0,RLWEKEX_str_functs);
-		ERR_load_strings(0,RLWEKEX_str_reasons);
+		ERR_load_strings(0,LWEKEX_str_functs);
+		ERR_load_strings(0,LWEKEX_str_reasons);
 		}
 #endif
 	}

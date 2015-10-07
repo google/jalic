@@ -11,13 +11,13 @@ Author: mironov@google.com (Ilya Mironov)
 #include <openssl/rand.h>
 
 uint32_t random32() {
-	uint32_t b;
-	int r = RAND_bytes((unsigned char *) &b, 4);
-	if (r != 1) {
-	  printf("ERROR\n");
-	  exit(1);
-	}
-	return b;
+  uint32_t b;
+  int r = RAND_bytes((unsigned char *)&b, 4);
+  if (r != 1) {
+    printf("ERROR\n");
+    exit(1);
+  }
+  return b;
 }
 
 int main(int argc, char *argv[]) {
@@ -31,7 +31,11 @@ int main(int argc, char *argv[]) {
   int i, j, index = 0;
   uint32_t lwe_a_transpose[1024 * 1024];
   uint32_t tmp;
-  fprintf(f, "/*\nCopyright 2015 Google Inc. All Rights Reserved.\n\nAuthor: nikolaenko@google.com (Valeria Nikolaenko)\nAuthor: pseudorandom@google.com (Ananth Raghunathan)\nAuthor: mironov@google.com (Ilya Mironov)\n*/\n");
+  fprintf(f,
+          "/*\nCopyright 2015 Google Inc. All Rights Reserved.\n\nAuthor: "
+          "Valeria Nikolaenko (nikolaenko@google.com)\nAuthor: "
+          "Ananth Raghunathan (pseudorandom@google.com)\nAuthor: "
+          "Ilya Mironov (mironov@google.com)\n*/\n");
   fprintf(f, "#ifndef _LWE_A_H_\n#define _LWE_A_H_\n\n");
   fprintf(f, "uint32_t lwe_a[1024 * 1024] = {\n");
   for (i = 0; i < (1 << 18); i++) {
@@ -56,7 +60,7 @@ int main(int argc, char *argv[]) {
     fprintf(f, "\n");
   }
   fprintf(f, "};\n#endif /* _LWE_A_H_ */");
-  
+
   fclose(f);
   return (0);
 }
