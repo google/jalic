@@ -56,14 +56,6 @@ static void *KDF1_SHA1(const void *in, size_t inlen, void *out,
 }
 
 static int test_lwekex(BIO *out, int single) {
-  /*
-  uint32_t *out_debug = (uint32_t *)OPENSSL_malloc(2 * sizeof(uint32_t));
-  out_debug[0] = out_debug[1] = 0xFFFFFFFF;
-  memset(out_debug, 0, 2);
-  printf("out = 0x%08X 0x%08X\n", out_debug[0], out_debug[1]);
-  OPENSSL_free(out_debug);
-  */
-
   LWE_PAIR *alice = NULL, *bob = NULL;
   LWE_REC *rec = NULL;
 
@@ -82,7 +74,7 @@ static int test_lwekex(BIO *out, int single) {
   size_t asslen, bsslen;
 
   int i, ret = 0;
-  int LWE_N_HAT = 4;  // TODO: replace!!!
+  int LWE_N_HAT = 3;
   uint32_t *v =
       (uint32_t *)OPENSSL_malloc(LWE_N_HAT * LWE_N_HAT * sizeof(uint32_t));
   uint32_t *w =
@@ -105,7 +97,7 @@ static int test_lwekex(BIO *out, int single) {
   if (!LWE_PAIR_generate_key(alice, ctx, 1)) goto err;
   apublen = i2o_LWE_PUB(LWE_PAIR_get_publickey(alice), &apubbuf);
   if (single)
-    BIO_printf(out, "  public B (%i bytes, %i elements) = ", (int)apublen,
+    BIO_printf(out, "  public B (%i bytes, %i 32-bit numbers) = ", (int)apublen,
                (int)apublen / 4);
   if (apublen <= 0) {
     fprintf(stderr, "Error in LWEKEX routines\n");
@@ -113,7 +105,6 @@ static int test_lwekex(BIO *out, int single) {
     goto err;
   }
   if (single) {
-    // for (i = 0; i < apublen; i++) {
     for (i = 0; i < 2; i++) {
       BIO_printf(out, "0x%08X ", ((uint32_t *)apubbuf)[i]);
     }
@@ -124,9 +115,8 @@ static int test_lwekex(BIO *out, int single) {
   if (!LWE_PAIR_generate_key(bob, ctx, 0)) goto err;
   bpublen = i2o_LWE_PUB(LWE_PAIR_get_publickey(bob), &bpubbuf);
   if (single) {
-    BIO_printf(out, "  public B' (%i bytes, %i elements) = ", (int)bpublen,
+    BIO_printf(out, "  public B' (%i bytes, %i 32-bit numbers) = ", (int)bpublen,
                (int)bpublen / 4);
-    // for (i = 0; i < bpublen; i++) {
     for (i = 0; i < 2; i++) {
       BIO_printf(out, "0x%08X ", ((uint32_t *)bpubbuf)[i]);
     }
@@ -199,38 +189,33 @@ static int test_lwekex(BIO *out, int single) {
   }
 
   // computing the Hamming distance vector between v and w
-  uint32_t tmp, min;
-  BIO_printf(out, "Hamming distance between the keys: [");
-  for (i = 0; i < LWE_N_HAT * LWE_N_HAT; i++) {
-    // computing MIN(v[i] - w[i], w[i] - v[i])
-    min = v[i] - w[i];
-    tmp = w[i] - v[i];
-    if (tmp < min) min = tmp;
-    BIO_printf(out, "%08X", min);
-    if (i + 1 < LWE_N_HAT * LWE_N_HAT) BIO_printf(out, ", ");
-  }
-  BIO_printf(out, "]\n");
-
-  // computing the number of the lsb bits corrupted by noise
-  BIO_printf(out,
-             "The number of corrupted least significant bits (out of 32): [");
-  int count_bits = 0;
-  int max = 0;
-  for (i = 0; i < LWE_N_HAT * LWE_N_HAT; i++) {
-    // computing MIN(v[i] - w[i], w[i] - v[i])
-    min = v[i] - w[i];
-    tmp = w[i] - v[i];
-    if (tmp < min) min = tmp;
-    count_bits = 0;
-    while (min != 0) {
-      count_bits++;
-      min >>= 1;
+  if(single) {
+    BIO_printf(out, "Hamming distance between the keys: [");
+    for (i = 0; i < LWE_N_HAT * LWE_N_HAT; i++) {
+      BIO_printf(out, "%08X", v[i] ^ w[i]);
+      if (i + 1 < LWE_N_HAT * LWE_N_HAT) BIO_printf(out, ", ");
     }
-    if (count_bits > max) max = count_bits;
-    BIO_printf(out, "%i", count_bits);
-    if (i + 1 < LWE_N_HAT * LWE_N_HAT) BIO_printf(out, ", ");
+    BIO_printf(out, "]\n");
+
+    // computing the number of the lsb bits corrupted by noise
+  
+    BIO_printf(out,
+               "The number of corrupted least significant bits (out of 32): [");
+    int count_bits = 0;
+    int max = 0;
+    for (i = 0; i < LWE_N_HAT * LWE_N_HAT; i++) {
+      uint32_t diff =  v[i] ^ w[i];
+      count_bits = 0;
+      while (diff != 0) {
+        count_bits++;
+        diff >>= 1;
+      }
+      if (count_bits > max) max = count_bits;
+      BIO_printf(out, "%i", count_bits);
+      if (i + 1 < LWE_N_HAT * LWE_N_HAT) BIO_printf(out, ", ");
+    }
+    BIO_printf(out, "], MAX = %i\n", max);
   }
-  BIO_printf(out, "], MAX = %i\n", max);
 
 err:
   ERR_print_errors_fp(stderr);

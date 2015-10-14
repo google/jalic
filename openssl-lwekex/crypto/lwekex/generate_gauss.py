@@ -94,9 +94,9 @@ def main():
     cumsum = min(cumsum, mpf(1.0) - approx)
           
     s = FpToHex(cumsum, 48)  # Convert the string to hex 
-    print "  {}{}".format(FormatHex(s, 16), "," if i < len(pdf) - 1 else "")
+    print "       {}{}".format(FormatHex(s, 16), "," if i < len(pdf) - 1 else "")
   
-  print "}}"
+  print "};"
 
 if __name__ == '__main__':
   main()

@@ -43,7 +43,7 @@ static int cmplt_ct(uint64_t *a, uint64_t *b) {
 static uint32_t single_sample(uint64_t *in) {
   int i = 0;
 
-  while (cmplt_ct(rlwe_table[i], in))  // ~3.5 comparisons in expectation
+  while (cmplt_ct(lwe_table[i], in))  // ~3.5 comparisons in expectation
     i++;
 
   return i;
@@ -55,7 +55,7 @@ static uint32_t single_sample_ct(uint64_t *in) {
 
   for (i = 0; i < 52; i++) {
     uint32_t mask1, mask2;
-    mask1 = cmplt_ct(in, rlwe_table[i]);
+    mask1 = cmplt_ct(in, lwe_table[i]);
     mask1 = (uint32_t)(0 - (int32_t)mask1);
     mask2 = (~mask1);
     index = ((index & mask1) | (i & mask2));
@@ -89,7 +89,7 @@ void lwe_sample_n_ct(uint32_t *s, int n) {
   }
 }
 
-// s (12 x 1024)
+// s (3 x 1024)
 void lwe_sample_ct(uint32_t *s) {
   RANDOM_VARS;
   int i, j, k, index = 0;
@@ -140,7 +140,7 @@ void lwe_sample_n(uint32_t *s, int n) {
   }
 }
 
-// s (12 x 1024)
+// s (3 x 1024)
 void lwe_sample(uint32_t *s) {
   RANDOM_VARS;
   int i, j, k, index = 0;
@@ -219,7 +219,7 @@ void lwe_crossround2(unsigned char *out, const uint32_t *in) {
   // out should have enough space for 1024-bits
   memset((unsigned char *)out, 0, LWE_KEY_LENGTH >> 3);
 
-  // in (12 x 12)
+  // in (3 x 3)
   // take first 128 elements of in and convert them to bits
   for (i = 0; i < LWE_KEY_LENGTH; i++) {
     // q/4 to q/2 and q/2 to q
@@ -307,8 +307,8 @@ void lwe_rec_ct(unsigned char *out, const uint32_t *w, const unsigned char *b) {
 void lwe_key_gen_server(uint32_t *out, const uint32_t *a, const uint32_t *s,
                         const uint32_t *e) {
   // a (1024 x 1024)
-  // s,e (1024 x 12)
-  // out = as + e (1024 x 12)
+  // s,e (1024 x 3)
+  // out = as + e (1024 x 3)
   size_t i, j, k, index = 0;
 
   // Make a temporary copy of s in the column-major order
@@ -326,14 +326,15 @@ void lwe_key_gen_server(uint32_t *out, const uint32_t *a, const uint32_t *s,
       index++;
     }
   }
+  lwe_key_round(out, LWE_N * LWE_N_HAT, 3);
 }
 
 // multiply by s on the left
 void lwe_key_gen_client(uint32_t *out, const uint32_t *a_transpose,
                         const uint32_t *s, const uint32_t *e) {
   // a (1024 x 1024)
-  // s',e' (12 x 1024)
-  // out = s'a + e' (12 x 1024)
+  // s',e' (3 x 1024)
+  // out = s'a + e' (3 x 1024)
   int i, j, k, index = 0;
   for (k = 0; k < LWE_N_HAT; k++) {
     for (i = 0; i < LWE_N; i++) {
@@ -347,14 +348,16 @@ void lwe_key_gen_client(uint32_t *out, const uint32_t *a_transpose,
       index++;
     }
   }
+  
+  lwe_key_round(out, LWE_N_HAT * LWE_N, 3);
 }
 
 // multiply by s on the left
 void lwe_key_derive_client(uint32_t *out, const uint32_t *b, const uint32_t *s,
                            const uint32_t *e) {
-  // b (1024 x 12)
-  // s (12 x 1024)
-  // e (12 x 12)
+  // b (1024 x 3)
+  // s (3 x 1024)
+  // e (3 x 3)
   // out = sb + e
   int i, j, k;
   for (k = 0; k < LWE_N_HAT; k++) {
@@ -364,5 +367,34 @@ void lwe_key_derive_client(uint32_t *out, const uint32_t *b, const uint32_t *s,
         out[k * LWE_N_HAT + i] += s[k * LWE_N + j] * b[j * LWE_N_HAT + i];
       }
     }
+  }
+}
+
+// multiply by s on the left
+void lwe_key_derive_server(uint32_t *out, const uint32_t *b,
+                           const uint32_t *s) {
+  // b (3 x 1024)
+  // s (1024 x 3)
+  // out = bs
+  int i, j, k;
+  for (i = 0; i < LWE_N_HAT; i++) {
+    for (j = 0; j < LWE_N_HAT; j++) {
+      out[i * LWE_N_HAT + j] = 0;
+      for (k = 0; k < LWE_N; k++) {
+        out[i * LWE_N_HAT + j] +=
+            b[i * LWE_N + k] * s[k * LWE_N_HAT + j];
+      }
+    }
+  }
+}
+
+
+// round all elements of a vector to the nearest multiple of 2^b
+void lwe_key_round(uint32_t *vec, const int length, const int b) {
+  int i;
+  uint32_t mask = ~((1 << b) - 1);
+  uint32_t half = b > 0 ? 1 << (b-1) : 0;
+  for (i = 0; i < length; i++) {
+    vec[i] = (vec[i] + half) & mask;
   }
 }

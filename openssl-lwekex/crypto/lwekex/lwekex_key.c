@@ -12,22 +12,30 @@ Author: mironov@google.com (Ilya Mironov)
 #include <openssl/rand.h>
 #include "lwekex_locl.h"
 
+/* LWE key exchange spends a disproportionate time sampling pseudorandom numbers
+ * in comparision with other ciphersuites. In its fastest mode of operation
+ * it draws from OpenSSL PRNG just once to initialize an AES key, and then uses
+ * AES in the counter mode to produce more pseudorandom numbers.
+ */
+
 #define RANDOMNESS_AESCTR  // much faster than RANDOMNESS_RAND_bytes with
                            // hardware support for AES
+// #define RANDOMNESS_RAND_bytes // standard OpenSSL PRNG
 
 #ifdef RANDOMNESS_AESCTR
 #include <openssl/aes.h>
-#define RANDOM_VARS                                  \
-  AES_KEY aes_key;                                   \
-  unsigned char aes_key_bytes[16];                   \
-  RAND_bytes(aes_key_bytes, 16);                     \
-  AES_set_encrypt_key(aes_key_bytes, 128, &aes_key); \
-  unsigned char aes_ivec[AES_BLOCK_SIZE];            \
-  memset(aes_ivec, 0, AES_BLOCK_SIZE);               \
-  unsigned char aes_ecount_buf[AES_BLOCK_SIZE];      \
-  memset(aes_ecount_buf, 0, AES_BLOCK_SIZE);         \
-  unsigned int aes_num = 0;                          \
-  unsigned char aes_in[AES_BLOCK_SIZE];              \
+#define RANDOM_VARS                                                        \
+  AES_KEY aes_key;                                                         \
+  unsigned char aes_key_bytes[16];                                         \
+  if (RAND_bytes(aes_key_bytes, sizeof(aes_key_bytes)) != 1)               \
+    LWEKEXerr(LWEKEX_F_RANDOM_VARS, LWEKEX_R_RANDOM_FAILED);               \
+  AES_set_encrypt_key(aes_key_bytes, sizeof(aes_key_bytes) * 8, &aes_key); \
+  unsigned char aes_ivec[AES_BLOCK_SIZE];                                  \
+  memset(aes_ivec, 0, AES_BLOCK_SIZE);                                     \
+  unsigned char aes_ecount_buf[AES_BLOCK_SIZE];                            \
+  memset(aes_ecount_buf, 0, AES_BLOCK_SIZE);                               \
+  unsigned int aes_num = 0;                                                \
+  unsigned char aes_in[AES_BLOCK_SIZE];                                    \
   memset(aes_in, 0, AES_BLOCK_SIZE);
 
 #define RANDOM8                                                            \
@@ -43,17 +51,6 @@ Author: mironov@google.com (Ilya Mironov)
   (lwe_randombuff(buff, length, &aes_key, aes_ivec, aes_ecount_buf, &aes_num, \
                   aes_in))
 
-uint64_t lwe_randomplease(AES_KEY *aes_key,
-                          unsigned char aes_ivec[AES_BLOCK_SIZE],
-                          unsigned char aes_ecount_buf[AES_BLOCK_SIZE],
-                          unsigned int *aes_num,
-                          unsigned char aes_in[AES_BLOCK_SIZE]) {
-  uint64_t out;
-  AES_ctr128_encrypt(aes_in, (unsigned char *)&out, 8, aes_key, aes_ivec,
-                     aes_ecount_buf, aes_num);
-  return out;
-}
-
 void lwe_randombuff(unsigned char *out, size_t length, AES_KEY *aes_key,
                     unsigned char aes_ivec[AES_BLOCK_SIZE],
                     unsigned char aes_ecount_buf[AES_BLOCK_SIZE],
@@ -62,35 +59,26 @@ void lwe_randombuff(unsigned char *out, size_t length, AES_KEY *aes_key,
   AES_ctr128_encrypt(aes_in, out, length, aes_key, aes_ivec, aes_ecount_buf,
                      aes_num);
 }
-#endif
-/*
-#ifdef RANDOMNESS_RCFOUR
-#include <openssl/rc4.h>
-#define RANDOM_VARS \
-  RC4_KEY rc4_key; \
-  unsigned char rc4_key_bytes[16]; \
-  RAND_bytes(rc4_key_bytes, 16); \
-  RC4_set_key(&rc4_key, 16, rc4_key_bytes);
 
-#define RANDOM8   ((uint8_t) randomplease(&rc4_key))
-#define RANDOM32 ((uint32_t) randomplease(&rc4_key))
-#define RANDOM64 ((uint64_t) randomplease(&rc4_key))
-
-uint64_t randomplease(RC4_KEY *rc4_key) {
-  uint64_t b;
-  uint64_t z = (uint64_t) 0;
-  RC4(rc4_key, 8, (unsigned char *) &z, (unsigned char *) &b);
-  return b;
+uint64_t lwe_randomplease(AES_KEY *aes_key,
+                          unsigned char aes_ivec[AES_BLOCK_SIZE],
+                          unsigned char aes_ecount_buf[AES_BLOCK_SIZE],
+                          unsigned int *aes_num,
+                          unsigned char aes_in[AES_BLOCK_SIZE]) {
+  uint64_t out;
+  lwe_randombuff((unsigned char *)&out, 8, aes_key, aes_ivec, aes_ecount_buf,
+                 aes_num, aes_in);
+  return out;
 }
 
 #endif
-*/
 
 #ifdef RANDOMNESS_RAND_bytes
 #define RANDOM_VARS
 #define RANDOM8 (random8())
 #define RANDOM32 (random32())
 #define RANDOM64 (random64())
+#define RANDOMBUFF(buff, num) (randombuff((unsigned char *)buff, num))
 
 uint8_t random8() {
   uint8_t b;
@@ -100,6 +88,7 @@ uint8_t random8() {
   }
   return b;
 }
+
 uint32_t random32() {
   uint32_t b;
   int r = RAND_bytes((unsigned char *)&b, sizeof(uint32_t));
@@ -108,6 +97,7 @@ uint32_t random32() {
   }
   return b;
 }
+
 uint64_t random64() {
   uint64_t b;
   int r = RAND_bytes((unsigned char *)&b, sizeof(uint64_t));
@@ -115,6 +105,13 @@ uint64_t random64() {
     LWEKEXerr(LWEKEX_F_RANDOM64, LWEKEX_R_RANDOM_FAILED);
   }
   return b;
+}
+
+void randombuff(unsigned char *buff, int num) {
+  int r = RAND_bytes(buff, num);
+  if (r != 1) {
+    LWEKEXerr(LWEKEX_F_RANDOMBUFF, LWEKEX_R_RANDOM_FAILED);
+  }
 }
 #endif
 
@@ -507,8 +504,7 @@ LWE_PUB *o2i_LWE_PUB(LWE_PUB **pub, const unsigned char *in, long len) {
   for (i = 0; i < LWE_N * LWE_N_HAT; i++) {
     (*pub)->b[i] = (((uint32_t)in[4 * i + 0]) << 24) |
                    (((uint32_t)in[4 * i + 1]) << 16) |
-                   (((uint32_t)in[4 * i + 2]) <<  8) | 
-                    ((uint32_t)in[4 * i + 3]);
+                   (((uint32_t)in[4 * i + 2]) << 8) | ((uint32_t)in[4 * i + 3]);
   }
 
   return *pub;
@@ -625,18 +621,10 @@ int LWEKEX_compute_key_alice(
                                                       sizeof(unsigned char));
 
   // W = B'S
-  int i, j, k;
-  for (i = 0; i < LWE_N_HAT; i++) {
-    for (j = 0; j < LWE_N_HAT; j++) {
-      w[i * LWE_N_HAT + j] = 0;
-      for (k = 0; k < LWE_N; k++) {
-        w[i * LWE_N_HAT + j] +=
-            peer_pub_key->b[i * LWE_N + k] * priv_pub_key->s[k * LWE_N_HAT + j];
-      }
-    }
-  }
-
+  lwe_key_derive_server(w, peer_pub_key->b, priv_pub_key->s);  
+ 
   debug_printf("  Computing B'S = ");  // DEBUG LINE
+  int i;
   for (i = 0; i < LWE_N_HAT * LWE_N_HAT; i++) {
     debug_printf("0x%08X ", w[i]);
   }
@@ -717,7 +705,6 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation,
     debug_printf(" ");
   }
   debug_printf("\n");
-// printf("...0x%08X\n", v[12 * 12 - 1]);
 
 #if CONSTANT_TIME
   debug_printf("  Computing reconciliation: C = <V>_2\n");  // DEBUG LINE

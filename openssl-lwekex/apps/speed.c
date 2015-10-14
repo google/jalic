@@ -2674,7 +2674,7 @@ int MAIN(int argc, char **argv)
 
 				lwekex_secret_size_b = KDF1_SHA1_len;
 				lwekex_secret_size_a = KDF1_SHA1_len;
-				/* generate two RLWE key pairs */
+				/* generate two LWE key pairs */
 				if (!LWE_PAIR_generate_key(lwekex_a[j], lwekex_ctx, 1) ||
 				    !LWE_PAIR_generate_key(lwekex_b[j], lwekex_ctx, 0))
 					{

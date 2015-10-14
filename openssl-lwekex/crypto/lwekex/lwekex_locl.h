@@ -30,7 +30,7 @@ struct lwe_param_st {
 struct lwe_pub_st {
   int version;
   LWE_PARAM *param;
-  uint32_t *b;  // for Server (1024 x 12), for Client (12 x 1024)
+  uint32_t *b;  // for Server (1024 x 3), for Client (3 x 1024)
   int references;
   int flags;
 };
@@ -38,8 +38,8 @@ struct lwe_pub_st {
 struct lwe_pair_st {
   int version;
   LWE_PUB *pub;
-  uint32_t *s;  // for Server (1024 x 12), for Client (12 x 1024)
-  uint32_t *e;  // for Server (1024 x 12), for Client (12 x 1024)
+  uint32_t *s;  // for Server (1024 x 3), for Client (3 x 1024)
+  uint32_t *e;  // for Server (1024 x 3), for Client (3 x 1024)
   int references;
   int flags;
 };

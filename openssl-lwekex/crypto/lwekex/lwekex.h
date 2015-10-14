@@ -107,6 +107,8 @@ void ERR_load_LWEKEX_strings(void);
 #define LWEKEX_F_RANDOM32				 111
 #define LWEKEX_F_RANDOM64				 112
 #define LWEKEX_F_RANDOM8				 110
+#define LWEKEX_F_RANDOMBUFF      117
+#define LWEKEX_F_RANDOM_VARS     118
 
 /* Reason codes. */
 #define LWEKEX_R_INVALID_LENGTH				 102
