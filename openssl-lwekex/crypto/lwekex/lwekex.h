@@ -136,13 +136,17 @@ void ERR_load_LWEKEX_strings(void);
 /* Error codes for the LWEKEX functions. */
 
 /* Function codes. */
+#define LWEKEX_F_COMPUTE_KEY_ALICE			 120
+#define LWEKEX_F_COMPUTE_KEY_BOB			 121
 #define LWEKEX_F_I2O_LWE_PUB				 100
 #define LWEKEX_F_I2O_LWE_REC				 104
+#define LWEKEX_F_KEY_GEN_SERVER				 122
 #define LWEKEX_F_LWEKEX_				 107
 #define LWEKEX_F_LWEKEX_COMPUTE_KEY_ALICE		 108
 #define LWEKEX_F_LWEKEX_COMPUTE_KEY_BOB			 109
 #define LWEKEX_F_LWE_CTX_NEW				 114
 #define LWEKEX_F_LWE_PAIR_COPY				 115
+#define LWEKEX_F_LWE_PAIR_GENERATE_KEY			 119
 #define LWEKEX_F_LWE_PAIR_NEW				 102
 #define LWEKEX_F_LWE_PARAM_NEW				 113
 #define LWEKEX_F_LWE_PUB_COPY				 116
@@ -153,8 +157,8 @@ void ERR_load_LWEKEX_strings(void);
 #define LWEKEX_F_RANDOM32				 111
 #define LWEKEX_F_RANDOM64				 112
 #define LWEKEX_F_RANDOM8				 110
-#define LWEKEX_F_RANDOMBUFF      117
-#define LWEKEX_F_RANDOM_VARS     118
+#define LWEKEX_F_RANDOMBUFF				 117
+#define LWEKEX_F_RANDOM_VARS				 118
 
 /* Reason codes. */
 #define LWEKEX_R_INVALID_LENGTH				 102

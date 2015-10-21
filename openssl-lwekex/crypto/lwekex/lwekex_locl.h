@@ -85,7 +85,6 @@ struct lwe_pair_st {
   int version;
   LWE_PUB *pub;
   uint32_t *s;  // for Server (1024 x 3), for Client (3 x 1024)
-  uint32_t *e;  // for Server (1024 x 3), for Client (3 x 1024)
   int references;
   int flags;
 };

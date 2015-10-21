@@ -57,12 +57,12 @@
 
 #include <stdint.h>
 
-#define LWE_REC_BITS 16  // Number of bits extracted from a ring element.
+#define LWE_REC_BITS 15  // Number of bits extracted from a ring element.
 
 #define LWE_N \
   1024  // Dimensionality of the lattice. Should be divisible by 64, otherwise
         // need to fix sampling functions.
-#define LWE_N_HAT \
+#define LWE_N_BAR \
   3  // Number of vectors chosen by each of the parties. (The protocol is
      // currenrly symmetric, LWE_M_HAT = LWE_N_HAT.) LWE_N_HAT * LWE_N_HAT
      // should be divisible by 8
@@ -71,7 +71,7 @@
        // multiple of 8 and satisfy LWE_KEY_LENGTH <= LWE_N_HAT * LWE_N_HAT *
        // LWE_REC_BITS
 
-#define LWE_KEY_TRUNCATE 4  // The number of least significant bits that can be
+#define LWE_KEY_TRUNCATE 8  // The number of least significant bits that can be
                             // truncated (or just be zeroed out).
 
 // It seems that nothing restricts the form of the modulus q, so we can stick to
@@ -94,7 +94,7 @@ void lwe_rec(unsigned char *out, const uint32_t *w, const unsigned char *b);
 // multiply by s on the right
 // computes out = as + e
 // where a (1024 x 1024), s,e (1024 x 3),
-void lwe_key_gen_server(uint32_t *out, const uint32_t *a, const uint32_t *s,
+int lwe_key_gen_server(uint32_t *out, const uint32_t *a, const uint32_t *s,
                         const uint32_t *e);
 // multiply by s on the left
 // computes out = sa + e

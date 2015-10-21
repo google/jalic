@@ -119,13 +119,13 @@ static int test_lwekex(BIO *out, int single) {
   unsigned char *assbuf = NULL, *bssbuf = NULL;
   size_t asslen, bsslen;
 
-  const int LWE_N_HAT = 3;
+  const int LWE_N_BAR = 3;
   
   int i, ret = 0;
   uint32_t *v =
-      (uint32_t *)OPENSSL_malloc(LWE_N_HAT * LWE_N_HAT * sizeof(uint32_t));
+      (uint32_t *)OPENSSL_malloc(LWE_N_BAR * LWE_N_BAR * sizeof(uint32_t));
   uint32_t *w =
-      (uint32_t *)OPENSSL_malloc(LWE_N_HAT * LWE_N_HAT * sizeof(uint32_t));
+      (uint32_t *)OPENSSL_malloc(LWE_N_BAR * LWE_N_BAR * sizeof(uint32_t));
 
   alice = LWE_PAIR_new();
   bob = LWE_PAIR_new();
@@ -238,9 +238,9 @@ static int test_lwekex(BIO *out, int single) {
   // computing the Hamming distance vector between v and w
   if(single) {
     BIO_printf(out, "Hamming distance between the keys: [");
-    for (i = 0; i < LWE_N_HAT * LWE_N_HAT; i++) {
+    for (i = 0; i < LWE_N_BAR * LWE_N_BAR; i++) {
       BIO_printf(out, "%08X", v[i] ^ w[i]);
-      if (i + 1 < LWE_N_HAT * LWE_N_HAT) BIO_printf(out, ", ");
+      if (i + 1 < LWE_N_BAR * LWE_N_BAR) BIO_printf(out, ", ");
     }
     BIO_printf(out, "]\n");
 
@@ -250,8 +250,8 @@ static int test_lwekex(BIO *out, int single) {
                "The number of corrupted least significant bits (out of 32): [");
     int count_bits = 0;
     int max = 0;
-    for (i = 0; i < LWE_N_HAT * LWE_N_HAT; i++) {
-      int64_t diff =  (int64_t)(v[i] - w[i]);
+    for (i = 0; i < LWE_N_BAR * LWE_N_BAR; i++) {
+      int64_t diff =  (int64_t)v[i] - w[i];
       if(diff < 0)
         diff = -diff;
       count_bits = 0;
@@ -261,7 +261,7 @@ static int test_lwekex(BIO *out, int single) {
       }
       if (count_bits > max) max = count_bits;
       BIO_printf(out, "%i", count_bits);
-      if (i + 1 < LWE_N_HAT * LWE_N_HAT) BIO_printf(out, ", ");
+      if (i + 1 < LWE_N_BAR * LWE_N_BAR) BIO_printf(out, ", ");
     }
     BIO_printf(out, "], MAX = %i\n", max);
   }
