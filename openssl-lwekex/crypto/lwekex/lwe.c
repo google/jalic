@@ -6,7 +6,7 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer. 
+ *    notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in
@@ -18,7 +18,8 @@
  *    "This product includes software developed by the OpenSSL Project
  *    for use in the OpenSSL Toolkit. (http://www.openssl.org/)"
  *
- * 4. The names "OpenSSL Toolkit" and "OpenSSL Project", and "Google" must not be used to
+ * 4. The names "OpenSSL Toolkit" and "OpenSSL Project", and "Google" must not
+ * be used to
  *    endorse or promote products derived from this software without
  *    prior written permission. For written permission, please contact
  *    openssl-core@openssl.org.
@@ -80,9 +81,9 @@
  */
 static int cmplt_ct(uint64_t *a, uint64_t *b) {
   int m;
-  m = (a[0] >= b[0]);
-  m = ((a[1] >= b[1]) && (!(a[1] == b[1]) || m));
-  m = ((a[2] >= b[2]) && (!(a[2] == b[2]) || m));
+  m = a[0] >= b[0];
+  m = (a[1] >= b[1]) | ((a[1] == b[1]) & m);
+  m = (a[2] >= b[2]) | ((a[2] == b[2]) & m);
   return (m == 0);
 }
 
@@ -195,11 +196,11 @@ void lwe_sample(uint32_t *s) {
       uint64_t r = RANDOM64;
       uint64_t rnd[3 * 64];
       RANDOMBUFF((unsigned char *)rnd, sizeof(rnd));
-
       for (j = 0; j < 64; j++) {
         s[index] = single_sample(rnd + 3 * j);
-        if (r & (1 << j)) {
-          s[index] = 0xFFFFFFFF - s[index];
+        if ((r >> j) & 1) {
+          s[index] = -s[index];  // s is unsigned but this operation makes sense
+                                 // mod 2^32
         }
         index++;
       }
@@ -216,9 +217,6 @@ void lwe_round2(unsigned char *out, const uint32_t *in) {
 
   // 1 iff between q/4 and 3*q/4
   for (i = 0; i < LWE_N_HAT * LWE_N_HAT; i++) {
-    // if (in[i] >= 1073741824 && in[i] <= 3221225471) { // from rlwe
-    // if (((in[i] >> 30) & 1) + ((in[i] >> 31) & 1) == 1) { // previous
-    // mechanism
     for (j = 0; j < LWE_REC_BITS; j++) {
       if (index >= LWE_KEY_LENGTH) {
         return;
@@ -372,7 +370,7 @@ void lwe_key_gen_server(uint32_t *out, const uint32_t *a, const uint32_t *s,
       index++;
     }
   }
-  lwe_key_round(out, LWE_N * LWE_N_HAT, 3);
+  lwe_key_round(out, LWE_N * LWE_N_HAT, LWE_KEY_TRUNCATE);
 }
 
 // multiply by s on the left
@@ -394,8 +392,8 @@ void lwe_key_gen_client(uint32_t *out, const uint32_t *a_transpose,
       index++;
     }
   }
-  
-  lwe_key_round(out, LWE_N_HAT * LWE_N, 3);
+
+  lwe_key_round(out, LWE_N_HAT * LWE_N, LWE_KEY_TRUNCATE);
 }
 
 // multiply by s on the left
@@ -427,19 +425,17 @@ void lwe_key_derive_server(uint32_t *out, const uint32_t *b,
     for (j = 0; j < LWE_N_HAT; j++) {
       out[i * LWE_N_HAT + j] = 0;
       for (k = 0; k < LWE_N; k++) {
-        out[i * LWE_N_HAT + j] +=
-            b[i * LWE_N + k] * s[k * LWE_N_HAT + j];
+        out[i * LWE_N_HAT + j] += b[i * LWE_N + k] * s[k * LWE_N_HAT + j];
       }
     }
   }
 }
 
-
 // round all elements of a vector to the nearest multiple of 2^b
 void lwe_key_round(uint32_t *vec, const int length, const int b) {
   int i;
   uint32_t mask = ~((1 << b) - 1);
-  uint32_t half = b > 0 ? 1 << (b-1) : 0;
+  uint32_t half = b > 0 ? 1 << (b - 1) : 0;
   for (i = 0; i < length; i++) {
     vec[i] = (vec[i] + half) & mask;
   }

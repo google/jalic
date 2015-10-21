@@ -6,7 +6,7 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer. 
+ *    notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in
@@ -18,7 +18,8 @@
  *    "This product includes software developed by the OpenSSL Project
  *    for use in the OpenSSL Toolkit. (http://www.openssl.org/)"
  *
- * 4. The names "OpenSSL Toolkit" and "OpenSSL Project", and "Google" must not be used to
+ * 4. The names "OpenSSL Toolkit" and "OpenSSL Project", and "Google" must not
+ * be used to
  *    endorse or promote products derived from this software without
  *    prior written permission. For written permission, please contact
  *    openssl-core@openssl.org.
@@ -56,7 +57,8 @@
 
 #include <stdint.h>
 
-#define LWE_REC_BITS 20
+#define LWE_REC_BITS 16  // Number of bits extracted from a ring element.
+
 #define LWE_N \
   1024  // Dimensionality of the lattice. Should be divisible by 64, otherwise
         // need to fix sampling functions.
@@ -68,6 +70,9 @@
   128  // The length of the resulting key in bits (TODO: make 256). Should be a
        // multiple of 8 and satisfy LWE_KEY_LENGTH <= LWE_N_HAT * LWE_N_HAT *
        // LWE_REC_BITS
+
+#define LWE_KEY_TRUNCATE 4  // The number of least significant bits that can be
+                            // truncated (or just be zeroed out).
 
 // It seems that nothing restricts the form of the modulus q, so we can stick to
 // 2^32, which means that we are using unsigned 32-bit integer.

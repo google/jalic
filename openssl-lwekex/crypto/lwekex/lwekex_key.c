@@ -741,7 +741,7 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation,
   debug_printf("...0x%08X\n", eprimeprime[LWE_N_HAT * LWE_N_HAT - 1]);
 
   debug_printf("  Computing V = S'B + E'' = ");  // DEBUG LINE
-
+  
   lwe_key_derive_client(v, peer_pub_key->b, priv_pub_key->s,
                         eprimeprime);  // can potentially pass a context in here
   OPENSSL_free(eprimeprime);

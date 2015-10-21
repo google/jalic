@@ -119,8 +119,9 @@ static int test_lwekex(BIO *out, int single) {
   unsigned char *assbuf = NULL, *bssbuf = NULL;
   size_t asslen, bsslen;
 
+  const int LWE_N_HAT = 3;
+  
   int i, ret = 0;
-  int LWE_N_HAT = 3;
   uint32_t *v =
       (uint32_t *)OPENSSL_malloc(LWE_N_HAT * LWE_N_HAT * sizeof(uint32_t));
   uint32_t *w =
@@ -250,7 +251,9 @@ static int test_lwekex(BIO *out, int single) {
     int count_bits = 0;
     int max = 0;
     for (i = 0; i < LWE_N_HAT * LWE_N_HAT; i++) {
-      uint32_t diff =  v[i] ^ w[i];
+      int64_t diff =  (int64_t)(v[i] - w[i]);
+      if(diff < 0)
+        diff = -diff;
       count_bits = 0;
       while (diff != 0) {
         count_bits++;
