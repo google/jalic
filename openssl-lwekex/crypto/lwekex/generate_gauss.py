@@ -85,7 +85,7 @@ def main():
 
   pdf = [x / sum(pdf_prop) for x in pdf_prop]
   
-  print "#define LWE_MAX_NOISE 52".format(len(pdf))
+  print "#define LWE_MAX_NOISE {}".format(len(pdf))
   
   print "static uint64_t lwe_table[{}][3] = {{".format(len(pdf))
 
