@@ -187,8 +187,8 @@ static int test_lwekex(BIO *out, int single) {
   reclen = i2o_LWE_REC(rec, &recbuf);
   if (single) {
     BIO_printf(out, "  rec (%i bytes) = ", (int)reclen);
-    for (i = 0; i < reclen / 4; i++) {
-      BIO_printf(out, "0x%08X ", ((uint32_t *)recbuf)[i]);
+    for (i = 0; i < reclen; i++) {
+      BIO_printf(out, "0x%02X ", ((unsigned char *)recbuf)[i]);
     }
     BIO_puts(out, "\n");
   }
@@ -227,8 +227,10 @@ static int test_lwekex(BIO *out, int single) {
   }
 
   if ((bsslen != asslen) || (memcmp(assbuf, bssbuf, asslen) != 0)) {
-    BIO_printf(out, " failed\n\n");
-    fprintf(stderr, "Error in LWEKEX routines (mismatched shared secrets)\n");
+    if(single) {
+      BIO_printf(out, " failed\n\n");
+      fprintf(stderr, "Error in LWEKEX routines (mismatched shared secrets)\n");
+    }
     ret = 0;
   } else {
     if (single) BIO_printf(out, "ok!\n");

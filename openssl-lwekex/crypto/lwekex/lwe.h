@@ -57,7 +57,9 @@
 
 #include <stdint.h>
 
-#define LWE_REC_BITS 15  // Number of bits extracted from a ring element.
+// #define DEBUG_LOGS
+
+#define LWE_REC_BITS 20  // Number of bits extracted from a ring element.
 
 #define LWE_N \
   1024  // Dimensionality of the lattice. Should be divisible by 64, otherwise
@@ -71,8 +73,10 @@
        // multiple of 8 and satisfy LWE_KEY_LENGTH <= LWE_N_HAT * LWE_N_HAT *
        // LWE_REC_BITS
 
-#define LWE_KEY_TRUNCATE 8  // The number of least significant bits that can be
+#define LWE_KEY_TRUNCATE 0  // The number of least significant bits that can be
                             // truncated (or just be zeroed out).
+
+#define LWE_REC_LENGTH (((LWE_N_BAR * LWE_N_BAR + 7) / 8))
 
 // It seems that nothing restricts the form of the modulus q, so we can stick to
 // 2^32, which means that we are using unsigned 32-bit integer.
@@ -83,13 +87,13 @@ void lwe_sample_n_ct(uint32_t *s, int n);
 void lwe_sample_n(uint32_t *s, int n);
 
 void lwe_round2_ct(unsigned char *out, const uint32_t *in);
-void lwe_round2(unsigned char *out, const uint32_t *in);
+void lwe_round2(unsigned char *out, uint32_t *in);
 
 void lwe_crossround2_ct(unsigned char *out, const uint32_t *in);
 void lwe_crossround2(unsigned char *out, const uint32_t *in);
 
-void lwe_rec_ct(unsigned char *out, const uint32_t *w, const unsigned char *b);
-void lwe_rec(unsigned char *out, const uint32_t *w, const unsigned char *b);
+void lwe_rec_ct(unsigned char *out, uint32_t *w, const unsigned char *b);
+void lwe_rec(unsigned char *out, uint32_t *w, const unsigned char *b);
 
 // multiply by s on the right
 // computes out = as + e
@@ -108,6 +112,12 @@ void lwe_key_derive_client(uint32_t *out, const uint32_t *b, const uint32_t *s,
                            const uint32_t *e);
 
 // round the entire vector to the nearest multiple of 2^b
-void lwe_key_round(uint32_t *vec, const int length, const int b);
+void lwe_key_round(uint32_t *vec, const size_t length, const int b);
+
+void lwe_pack(unsigned char *out, const size_t outlen, const uint32_t *in,
+              const size_t inlen, const unsigned char msb);
+
+void lwe_key_round_directed(uint32_t *vec, const size_t length, const int b,
+                            const unsigned char *dir);
 
 #endif /* _LWE_H_ */

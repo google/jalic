@@ -434,8 +434,12 @@ LWE_REC *LWE_REC_new(void) {
   ret->flags = 0;
   ret->references = 1;
 
-  ret->c =
-      (unsigned char *)malloc((LWE_KEY_LENGTH >> 3) * sizeof(unsigned char));
+  ret->c = (unsigned char *)malloc(LWE_REC_LENGTH);
+  
+  if (ret->c == NULL) {
+    LWEKEXerr(LWEKEX_F_LWE_REC_NEW, ERR_R_MALLOC_FAILURE);
+    return (NULL);    
+  }
 
   return (ret);
 }
@@ -457,11 +461,10 @@ void LWE_REC_free(LWE_REC *r) {
   }
 #endif
 
-  OPENSSL_cleanse(r->c, (LWE_KEY_LENGTH >> 3) * sizeof(unsigned char));
+  OPENSSL_cleanse(r->c, LWE_REC_LENGTH);
   OPENSSL_free(r->c);
 
   OPENSSL_cleanse((void *)r, sizeof(LWE_REC));
-
   OPENSSL_free(r);
 }
 
@@ -609,8 +612,7 @@ LWE_REC *o2i_LWE_REC(LWE_REC **rec, const unsigned char *in, long len) {
     return 0;
   }
 
-  // 128 bits are embedded into 16 * 8-bits numbers
-  if (len != (LWE_KEY_LENGTH >> 3)) {
+  if (len != LWE_REC_LENGTH) {
     LWEKEXerr(LWEKEX_F_O2I_LWE_REC, LWEKEX_R_INVALID_LENGTH);
     return 0;
   }
@@ -628,7 +630,7 @@ int i2o_LWE_REC(LWE_REC *rec, unsigned char **out) {
     return 0;
   }
 
-  buf_len = (LWE_KEY_LENGTH >> 3);
+  buf_len = LWE_REC_LENGTH;
 
   if (out == NULL || buf_len == 0)
     /* out == NULL => just return the length of the octet string */
@@ -784,6 +786,12 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation,
 #else
   debug_printf("  Computing reconciliation: C = <V>_2\n");  // DEBUG LINE
   lwe_crossround2(reconciliation->c, v);
+  for (i = 0; i < LWE_REC_LENGTH; i++) {
+    binary_printf(reconciliation->c[i], 8);
+    debug_printf(" ");
+  }
+  debug_printf("\n");  
+  
   debug_printf("  Computing key K = [V]_2 = ");  // DEBUG LINE
   lwe_round2(kb, v);
 #endif
@@ -792,7 +800,7 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation,
     binary_printf(kb[i], 8);
     debug_printf(" ");
   }
-  debug_printf("\n");
+  debug_printf("\n");  
 
   if (KDF != 0) {
     if (KDF((unsigned char *)kb, (LWE_KEY_LENGTH >> 3) * sizeof(unsigned char),

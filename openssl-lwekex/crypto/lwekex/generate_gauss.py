@@ -87,7 +87,7 @@ def main():
   
   print "#define LWE_MAX_NOISE {}".format(len(pdf))
   
-  print "static uint64_t lwe_table[{}][3] = {{".format(len(pdf))
+  print "static uint64_t lwe_table[LWE_MAX_NOISE][3] = {{"
 
   cumsum = 0
   for i, x in enumerate(pdf):

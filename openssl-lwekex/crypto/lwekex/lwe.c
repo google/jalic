@@ -209,129 +209,44 @@ void lwe_sample(uint32_t *s) {
 }
 
 // [.]_2
-void lwe_round2(unsigned char *out, const uint32_t *in) {
-  int i, j, index = 0;
+void lwe_round2(unsigned char *out, uint32_t *in) {
+  lwe_key_round(in, LWE_N_BAR * LWE_N_BAR, 32 - LWE_REC_BITS);
 
-  // out should have enough space for 128-bits //NB!
-  memset((unsigned char *)out, 0, LWE_KEY_LENGTH >> 3);  // 128 >> 3 = 16
-
-  // 1 iff between q/4 and 3*q/4
-  for (i = 0; i < LWE_N_BAR * LWE_N_BAR; i++) {
-    for (j = 0; j < LWE_REC_BITS; j++) {
-      if (index >= LWE_KEY_LENGTH) {
-        return;
-      }
-      if ((in[i] >> (32 - LWE_REC_BITS + j)) & 1) {  // previous mechanism
-        setbit(out, index);
-      }
-      index++;
-    }
-  }
-}
-
-/* Constant time version. */
-// [.]_2
-void lwe_round2_ct(unsigned char *out, const uint32_t *in) {
-  int i, j, index;
-  // out should have enough space for 128-bits //NB!
+  // out should have enough space for the key
   memset((unsigned char *)out, 0, LWE_KEY_LENGTH >> 3);
-  for (i = 0; i < LWE_N_BAR * LWE_N_BAR; i++) {
-    // uint32_t b = (((in[i] >> 30) & 1) + ((in[i] >> 31) & 1)) & 1;
-    for (j = 0; j < LWE_REC_BITS; j++) {
-      index = i * LWE_REC_BITS + j;
-      if (index >= LWE_KEY_LENGTH) {
-        return;
-      }
-      uint32_t b = ((in[i] >> (32 - LWE_REC_BITS + j)) & 1);
-      out[index / 8] |= (((unsigned char)b) << (unsigned char)(index % 8));
-    }
-    /*
-    if (i < 5) {
-      binary_printf(in[i], 32);
-      printf(" -> ");
-      binary_printf(out[0], 64);
-      printf(" <- ");
-      binary_printf(in[i] >> (32 - LWE_REC_BITS), LWE_REC_BITS);
-      printf("\n");
-    } */
-  }
+
+  lwe_pack(out, LWE_KEY_LENGTH >> 3, in, LWE_N_BAR * LWE_N_BAR, LWE_REC_BITS);
 }
 
 // <.>_2
 void lwe_crossround2(unsigned char *out, const uint32_t *in) {
   int i;
-  // out should have enough space for 1024-bits
-  memset((unsigned char *)out, 0, LWE_KEY_LENGTH >> 3);
+  // out should have enough space for N_BAR * N_BAR bits
+  memset((unsigned char *)out, 0, LWE_REC_LENGTH);
+  
+  uint32_t whole = 1 << (32 - LWE_REC_BITS);
+  uint32_t half = whole >> 1;
+  uint32_t mask = whole - 1;
 
-  // in (3 x 3)
-  // take first 128 elements of in and convert them to bits
-  for (i = 0; i < LWE_KEY_LENGTH; i++) {
+  for (i = 0; i < LWE_N_BAR * LWE_N_BAR; i++) {
+    uint32_t remainder = in[i] & mask;
+    out[i / 8] += (remainder >= half) << (i % 8);
+  }
+/*
     // q/4 to q/2 and q/2 to q
     if ((in[i] >> (31 - LWE_REC_BITS)) & 1) {
       setbit(out, i);
     }
-  }
+*/
 }
 
-// <.>_2
-void lwe_crossround2_ct(unsigned char *out, const uint32_t *in) {
-  int i;
-  memset((unsigned char *)out, 0, LWE_KEY_LENGTH >> 3);
-  for (i = 0; i < LWE_KEY_LENGTH; i++) {
-    uint32_t b;
-    b = (in[i] >> (31 - LWE_REC_BITS)) & 1;
-    out[(i) / 8] |= (((unsigned char)b) << (unsigned char)(i % 8));
-    /*
-  binary_printf(in[i], 32);
-  printf(" -> ");
-  binary_printf(out[i / 64], 64);
-  printf(" <- ");
-  binary_printf((in[i] >> (31 - LWE_REC_BITS)) & 1, 1);
-  printf(" offset %i", (i % 64));
-  printf("\n");
-    */
-  }
-}
-
-void lwe_rec(unsigned char *out, const uint32_t *w, const unsigned char *b) {
+void lwe_rec(unsigned char *out, uint32_t *w, const unsigned char *b) {
   lwe_rec_ct(out, w, b);
 }
 
-void lwe_rec_ct(unsigned char *out, const uint32_t *w, const unsigned char *b) {
-  int i, j, index = 0;
-
-  // out should have enough space for 128-bits
-  // TODO: restore constant time
-  memset((unsigned char *)out, 0, LWE_KEY_LENGTH >> 3);
-  uint32_t E = 1 << (30 - LWE_REC_BITS);  // q / 2^{2 + LWE_REC_BITS}
-  for (i = 0; i < LWE_KEY_LENGTH; i++) {
-    uint32_t coswi = w[i];
-    if (getbit(b, i) == 1) {
-      coswi += (-E);
-    } else {
-      coswi += E;
-    }
-    // set the next LWE_REC_BITS of out to be equal to LWE_REC_BITS most
-    // significant bits of coswi
-    for (j = 0; j < LWE_REC_BITS; j++) {
-      uint32_t b = ((coswi >> (32 - LWE_REC_BITS + j)) & 1);
-      out[index / 8] |= (((unsigned char)b) << (unsigned char)(index % 8));
-      index++;
-      if (index >= LWE_KEY_LENGTH) {
-        return;
-      }
-    }
-    /*
-    if (i < 5) {
-      binary_printf(coswi, 32);
-      printf(" -> ");
-      binary_printf(out[0], 64);
-      printf(" <- ");
-      binary_printf(coswi >> (32 - LWE_REC_BITS), LWE_REC_BITS);
-      printf("\n");
-    }
-    */
-  }
+void lwe_rec_ct(unsigned char *out, uint32_t *w, const unsigned char *b) {
+  lwe_key_round_directed(w, LWE_N_BAR * LWE_N_BAR, 32 - LWE_REC_BITS, b);
+  lwe_pack(out, LWE_KEY_LENGTH >> 3, w, LWE_N_BAR * LWE_N_BAR, LWE_REC_BITS);
 }
 
 // multiply by s on the right
@@ -370,7 +285,7 @@ int lwe_key_gen_server(uint32_t *out, const uint32_t *a, const uint32_t *s,
 
   OPENSSL_cleanse(s_transpose, LWE_N_BAR * LWE_N * sizeof(uint32_t));
   OPENSSL_free(s_transpose);
-  
+
   return 1;
 }
 
@@ -433,11 +348,88 @@ void lwe_key_derive_server(uint32_t *out, const uint32_t *b,
 }
 
 // round all elements of a vector to the nearest multiple of 2^b
-void lwe_key_round(uint32_t *vec, const int length, const int b) {
+void lwe_key_round(uint32_t *vec, const size_t length, const int b) {
   int i;
-  uint32_t mask = ~((1 << b) - 1);
+  uint32_t negmask = ~((1 << b) - 1);
   uint32_t half = b > 0 ? 1 << (b - 1) : 0;
+  for (i = 0; i < length; i++) vec[i] = (vec[i] + half) & negmask;
+}
+
+// Round all elements of a vector to the multiple of 2^b, with a hint for the 
+// direction of rounding when close to the boundary.
+void lwe_key_round_directed(uint32_t *vec, const size_t length, const int b,
+                            const unsigned char *hint) {
+  int i;
+  uint32_t whole = 1 << b;
+  uint32_t mask = whole - 1;
+  uint32_t negmask = ~mask;
+  uint32_t half = 1 << (b - 1);
+  uint32_t quarter = 1 << (b - 2);
+  uint32_t three_quarters = 3 * (1 << (b - 2));
+  
   for (i = 0; i < length; i++) {
-    vec[i] = (vec[i] + half) & mask;
+    uint32_t remainder = vec[i] & mask;
+    if((remainder >= quarter) && (remainder < three_quarters)) { // use the hint   
+      switch ((hint[i / 8] >> (i % 8)) % 2) {
+        case 0:
+          vec[i] = vec[i] & negmask;
+          break;
+        case 1:
+          vec[i] = (vec[i] + whole - 1) & negmask;
+          break;
+      }
+    } else
+      vec[i] = (vec[i] + half) & negmask;
   }
+}
+
+// Pack the input uint32 vector into a char output vector, copying msb bits
+// from each input element. If inlen * msb / 8 > outlen, only outlen * 8 bits
+// are copied.
+void lwe_pack(unsigned char *out, const size_t outlen, const uint32_t *in,
+              const size_t inlen, const unsigned char msb) {
+  
+  memset((unsigned char *)out, 0, outlen); 
+  
+  int i = 0;               // whole bytes already filled in
+  int j = 0;               // whole uint32_t already copied
+  uint32_t w = 0;          // the leftover, not yet copied
+  unsigned char bits = 0;  // the number of msb in w
+
+  while (i < outlen && (j < inlen || ((j == inlen) && (bits > 0)))) {
+    unsigned char b = 0;  // bits in out[i] already filled in
+    while (b < 8) {
+      int nbits = bits > (8 - b) ? 8 - b : bits;  // min(8 - b, bits);
+      unsigned char t = w >> (32 - nbits);  // the bits to copy from w to out
+      out[i] = out[i] + (t << (8 - b - nbits));
+      w <<= nbits;
+      b += nbits;
+      bits -= nbits;
+
+      if (bits == 0) {
+        if (j < inlen) {
+          w = in[j];
+          bits = msb;
+          j++;
+        } else
+          break;  // the input vector is exhausted
+      }
+    }
+    if (b == 8) {  // out[i] is filled in
+      i++;
+      b = 0;
+    }
+  }
+/*
+  printf(
+      "Copied %d bytes, %d bits from each element, using %d double words from "
+      "the input; %d bits are not copied\n",
+      i, msb, j, bits);
+  
+  for(i = 0; i < 7; i++)
+    printf("%08x\n", in[i]);
+  
+  for(i = 0; i < 16; i++)
+    printf("%02x\n", out[i]);
+*/
 }
