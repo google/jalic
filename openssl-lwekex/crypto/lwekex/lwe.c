@@ -62,13 +62,6 @@
 #include "lwe.h"
 #include "lwe_table.h"
 
-#define setbit(a, x) \
-  ((a)[(x) / 8] |= (((unsigned char)1) << (unsigned char)((x) % 8)))
-#define getbit(a, x) (((a)[(x) / 8] >> (unsigned char)((x) % 8)) & 1)
-#define clearbit(a, x) \
-  ((a)[(x) / 8] &=     \
-   ((~((unsigned char)0)) - (((unsigned char)1) << (unsigned char)((x) % 8))))
-
 #define RANDOM192(c) \
   c[0] = RANDOM64;   \
   c[1] = RANDOM64;   \
@@ -136,7 +129,7 @@ void lwe_sample_n_ct(uint32_t *s, int n) {
   }
 }
 
-// s (3 x 1024)
+// s (N_BAR x N)
 void lwe_sample_ct(uint32_t *s) {
   RANDOM_VARS;
   int i, j, k, index = 0;
@@ -187,7 +180,7 @@ void lwe_sample_n(uint32_t *s, int n) {
   }
 }
 
-// s (3 x 1024)
+// s (N_BAR x N)
 void lwe_sample(uint32_t *s) {
   RANDOM_VARS;
   int i, j, k, index = 0;
@@ -210,21 +203,18 @@ void lwe_sample(uint32_t *s) {
 
 // [.]_2
 void lwe_round2(unsigned char *out, uint32_t *in) {
-  lwe_key_round(in, LWE_N_BAR * LWE_N_BAR, 32 - LWE_REC_BITS);
-
+  lwe_key_round(in, LWE_N_BAR * LWE_N_BAR, 32 - LWE_EXTRACTED_BITS);
   // out should have enough space for the key
-  memset((unsigned char *)out, 0, LWE_KEY_LENGTH >> 3);
-
-  lwe_pack(out, LWE_KEY_LENGTH >> 3, in, LWE_N_BAR * LWE_N_BAR, LWE_REC_BITS);
+  lwe_pack(out, LWE_KEY_BITS >> 3, in, LWE_N_BAR * LWE_N_BAR, LWE_EXTRACTED_BITS);
 }
 
 // <.>_2
 void lwe_crossround2(unsigned char *out, const uint32_t *in) {
   int i;
   // out should have enough space for N_BAR * N_BAR bits
-  memset((unsigned char *)out, 0, LWE_REC_LENGTH);
+  memset((unsigned char *)out, 0, LWE_REC_HINT_LENGTH);
   
-  uint32_t whole = 1 << (32 - LWE_REC_BITS);
+  uint32_t whole = 1 << (32 - LWE_EXTRACTED_BITS);
   uint32_t half = whole >> 1;
   uint32_t mask = whole - 1;
 
@@ -240,29 +230,33 @@ void lwe_crossround2(unsigned char *out, const uint32_t *in) {
 */
 }
 
-void lwe_rec(unsigned char *out, uint32_t *w, const unsigned char *b) {
-  lwe_rec_ct(out, w, b);
+void lwe_reconcile(unsigned char *out, uint32_t *w, const unsigned char *hint) {
+  lwe_reconcile_ct(out, w, hint);
 }
 
-void lwe_rec_ct(unsigned char *out, uint32_t *w, const unsigned char *b) {
-  lwe_key_round_directed(w, LWE_N_BAR * LWE_N_BAR, 32 - LWE_REC_BITS, b);
-  lwe_pack(out, LWE_KEY_LENGTH >> 3, w, LWE_N_BAR * LWE_N_BAR, LWE_REC_BITS);
+void lwe_reconcile_ct(unsigned char *out, uint32_t *w, const unsigned char *hint) {
+  lwe_key_round_hints(w, LWE_N_BAR * LWE_N_BAR, 32 - LWE_EXTRACTED_BITS, hint);
+  lwe_pack(out, LWE_KEY_BITS >> 3, w, LWE_N_BAR * LWE_N_BAR, LWE_EXTRACTED_BITS);
 }
 
-// multiply by s on the right
-int lwe_key_gen_server(uint32_t *out, const uint32_t *a, const uint32_t *s,
+// multiply by s on the right, round-and-truncate
+int lwe_key_gen_server(unsigned char *out, const uint32_t *a, const uint32_t *s,
                        const uint32_t *e) {
-  // a (1024 x 1024)
-  // s,e (1024 x 3)
-  // out = as + e (1024 x 3)
+  // a (N x N)
+  // s,e (N x N_BAR)
+  // out = as + e (N x N_BAR)
   size_t i, j, k, index = 0;
 
   uint32_t *s_transpose =
-      NULL;  // A temporary copy of s in the column-major order
-
-  s_transpose =
       (uint32_t *)OPENSSL_malloc(LWE_N_BAR * LWE_N * sizeof(uint32_t));
   if (s_transpose == NULL) {
+    LWEKEXerr(LWEKEX_F_KEY_GEN_SERVER, ERR_R_MALLOC_FAILURE);
+    return 0;
+  }
+  
+  uint32_t *out_unpacked =
+      (uint32_t *)OPENSSL_malloc(LWE_N_BAR * LWE_N * sizeof(uint32_t));
+  if (out_unpacked == NULL) {
     LWEKEXerr(LWEKEX_F_KEY_GEN_SERVER, ERR_R_MALLOC_FAILURE);
     return 0;
   }
@@ -277,11 +271,15 @@ int lwe_key_gen_server(uint32_t *out, const uint32_t *a, const uint32_t *s,
       for (j = 0; j < LWE_N; j++)
         sum += a[i * LWE_N + j] * s_transpose[k * LWE_N + j];
 
-      out[index] = sum;
+      out_unpacked[index] = sum;
       index++;
     }
   }
-  lwe_key_round(out, LWE_N * LWE_N_BAR, LWE_KEY_TRUNCATE);
+  lwe_key_round(out_unpacked, LWE_N * LWE_N_BAR, LWE_TRUNCATED_BITS);
+  lwe_pack(out, LWE_PUB_LENGTH, out_unpacked, LWE_N * LWE_N_BAR, 32 - LWE_TRUNCATED_BITS);
+  
+  OPENSSL_cleanse(out_unpacked, LWE_N_BAR * LWE_N * sizeof(uint32_t));
+  OPENSSL_free(out_unpacked);
 
   OPENSSL_cleanse(s_transpose, LWE_N_BAR * LWE_N * sizeof(uint32_t));
   OPENSSL_free(s_transpose);
@@ -289,12 +287,20 @@ int lwe_key_gen_server(uint32_t *out, const uint32_t *a, const uint32_t *s,
   return 1;
 }
 
-// multiply by s on the left
-void lwe_key_gen_client(uint32_t *out, const uint32_t *a_transpose,
+// multiply by s' on the left, round-and-truncate
+int lwe_key_gen_client(unsigned char *out, const uint32_t *a_transpose,
                         const uint32_t *s, const uint32_t *e) {
-  // a (1024 x 1024)
-  // s',e' (3 x 1024)
-  // out = s'a + e' (3 x 1024)
+  // a (N x N)
+  // s',e' (N_BAR x N)
+  // out = s'a + e' (N_BAR x N)
+ 
+  uint32_t *out_unpacked =
+      (uint32_t *)OPENSSL_malloc(LWE_N_BAR * LWE_N * sizeof(uint32_t));
+  if (out_unpacked == NULL) {
+    LWEKEXerr(LWEKEX_F_KEY_GEN_CLIENT, ERR_R_MALLOC_FAILURE);
+    return 0;
+  }
+  
   int i, j, k, index = 0;
   for (k = 0; k < LWE_N_BAR; k++) {
     for (i = 0; i < LWE_N; i++) {
@@ -303,21 +309,27 @@ void lwe_key_gen_client(uint32_t *out, const uint32_t *a_transpose,
       for (j = 0; j < LWE_N; j++)
         sum += s[k * LWE_N + j] * a_transpose[i * LWE_N + j];
 
-      out[index] = sum;
+      out_unpacked[index] = sum;
 
       index++;
     }
   }
 
-  lwe_key_round(out, LWE_N_BAR * LWE_N, LWE_KEY_TRUNCATE);
+  lwe_key_round(out_unpacked, LWE_N * LWE_N_BAR, LWE_TRUNCATED_BITS);
+  lwe_pack(out, LWE_PUB_LENGTH, out_unpacked, LWE_N * LWE_N_BAR, 32 - LWE_TRUNCATED_BITS);
+  
+  OPENSSL_cleanse(out_unpacked, LWE_N_BAR * LWE_N * sizeof(uint32_t));
+  OPENSSL_free(out_unpacked);
+
+  return 1;
 }
 
 // multiply by s on the left
 void lwe_key_derive_client(uint32_t *out, const uint32_t *b, const uint32_t *s,
                            const uint32_t *e) {
-  // b (1024 x 3)
-  // s (3 x 1024)
-  // e (3 x 3)
+  // b (N x N_BAR)
+  // s (N_BAR x N)
+  // e (N_BAR x N_BAR)
   // out = sb + e
   int i, j, k;
   for (k = 0; k < LWE_N_BAR; k++) {
@@ -333,8 +345,8 @@ void lwe_key_derive_client(uint32_t *out, const uint32_t *b, const uint32_t *s,
 // multiply by s on the right
 void lwe_key_derive_server(uint32_t *out, const uint32_t *b,
                            const uint32_t *s) {
-  // b (3 x 1024)
-  // s (1024 x 3)
+  // b (N_BAR x N)
+  // s (N x N_BAR)
   // out = bs
   int i, j, k;
   for (i = 0; i < LWE_N_BAR; i++) {
@@ -357,7 +369,7 @@ void lwe_key_round(uint32_t *vec, const size_t length, const int b) {
 
 // Round all elements of a vector to the multiple of 2^b, with a hint for the 
 // direction of rounding when close to the boundary.
-void lwe_key_round_directed(uint32_t *vec, const size_t length, const int b,
+void lwe_key_round_hints(uint32_t *vec, const size_t length, const int b,
                             const unsigned char *hint) {
   int i;
   uint32_t whole = 1 << b;
@@ -369,17 +381,24 @@ void lwe_key_round_directed(uint32_t *vec, const size_t length, const int b,
   
   for (i = 0; i < length; i++) {
     uint32_t remainder = vec[i] & mask;
-    if((remainder >= quarter) && (remainder < three_quarters)) { // use the hint   
-      switch ((hint[i / 8] >> (i % 8)) % 2) {
+    // printf("rounding 0x%08X (remainder = 0x%08X) ", vec[i], remainder);
+    if((remainder >= quarter) && (remainder < three_quarters)) { // use the hint
+      unsigned char h = (hint[i / 8] >> (i % 8)) % 2;
+      switch (h) {
         case 0:
-          vec[i] = vec[i] & negmask;
+          // printf("down ");
+          vec[i] = vec[i] & negmask; // round down
           break;
         case 1:
-          vec[i] = (vec[i] + whole - 1) & negmask;
+          // printf("up ");
+          vec[i] = (vec[i] + whole - 1) & negmask; // round up
           break;
       }
-    } else
-      vec[i] = (vec[i] + half) & negmask;
+    } else {
+      // printf("to the nearest ");
+      vec[i] = (vec[i] + half) & negmask; // round to the nearest
+    }
+    // printf(" result =  0x%08X\n", vec[i]);  
   }
 }
 
@@ -395,8 +414,18 @@ void lwe_pack(unsigned char *out, const size_t outlen, const uint32_t *in,
   int j = 0;               // whole uint32_t already copied
   uint32_t w = 0;          // the leftover, not yet copied
   unsigned char bits = 0;  // the number of msb in w
-
   while (i < outlen && (j < inlen || ((j == inlen) && (bits > 0)))) {
+    /*
+    in: |        |        |********|********|   
+                          ^
+                          j
+    w : |****    |
+            ^
+           bits
+    out:|**|**|**|**|**|**|**|**|* |
+                                ^^
+                                ib
+    */
     unsigned char b = 0;  // bits in out[i] already filled in
     while (b < 8) {
       int nbits = bits > (8 - b) ? 8 - b : bits;  // min(8 - b, bits);
@@ -420,16 +449,52 @@ void lwe_pack(unsigned char *out, const size_t outlen, const uint32_t *in,
       b = 0;
     }
   }
-/*
-  printf(
-      "Copied %d bytes, %d bits from each element, using %d double words from "
-      "the input; %d bits are not copied\n",
-      i, msb, j, bits);
+}
+
+// Unpack the input char vector into a uint32_t output vector, copying msb bits
+// for each output element from input. outlen must be at least ceil(inlen * 8 / msb).
+void lwe_unpack(uint32_t *out, const size_t outlen, const unsigned char *in,
+              const size_t inlen, const unsigned char msb) {
   
-  for(i = 0; i < 7; i++)
-    printf("%08x\n", in[i]);
+  memset(out, 0, outlen * sizeof(uint32_t)); 
   
-  for(i = 0; i < 16; i++)
-    printf("%02x\n", out[i]);
-*/
+  int i = 0;               // whole dwords already filled in
+  int j = 0;               // whole bytes already copied
+  unsigned char w = 0;     // the leftover, not yet copied
+  unsigned char bits = 0;  // the number of msb bits of w
+  while (i < outlen && (j < inlen || ((j == inlen) && (bits > 0)))) {
+    /*
+    in: |  |  |  |  |  |  |**|**|...
+                          ^     
+                          j
+    w : |* |
+         ^
+         bits
+    out:|*****   |*****   |***     |        |...
+                          ^  ^
+                          i  b
+    */
+    unsigned char b = 0;  // bits in out[i] already filled in
+    while (b < msb) {
+      int nbits = bits > (msb - b) ? msb - b : bits;  // =min(msb - b, bits);
+      unsigned char t = w >> (8 - nbits);  // the bits to copy from w to out
+      out[i] = out[i] + (t << (32 - b - nbits));
+      w <<= nbits;
+      b += nbits;
+      bits -= nbits;
+
+      if (bits == 0) {
+        if (j < inlen) {
+          w = in[j];
+          bits = 8;
+          j++;
+        } else
+          break;  // the input vector is exhausted
+      }
+    }
+    if (b == msb) {  // out[i] is filled in
+      i++;
+      b = 0;
+    }
+  }
 }

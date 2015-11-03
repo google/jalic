@@ -6,7 +6,7 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer. 
+ *    notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in
@@ -18,7 +18,8 @@
  *    "This product includes software developed by the OpenSSL Project
  *    for use in the OpenSSL Toolkit. (http://www.openssl.org/)"
  *
- * 4. The names "OpenSSL Toolkit" and "OpenSSL Project", and "Google" must not be used to
+ * 4. The names "OpenSSL Toolkit" and "OpenSSL Project", and "Google" must not
+ * be used to
  *    endorse or promote products derived from this software without
  *    prior written permission. For written permission, please contact
  *    openssl-core@openssl.org.
@@ -70,6 +71,8 @@
 #include <openssl/sha.h>
 #include <openssl/err.h>
 
+#include "../crypto/lwekex/lwe.h"
+
 #ifdef OPENSSL_NO_LWEKEX
 int main(int argc, char *argv[]) {
   printf("No LWEKEX support\n");
@@ -101,6 +104,72 @@ static void *KDF1_SHA1(const void *in, size_t inlen, void *out,
 #endif
 }
 
+static int test_pack_unpack(BIO *out, uint32_t *in, size_t inlen,
+                            unsigned char msb) {
+  int ret = 0;
+  int i;
+
+  size_t packed_len = LWE_DIV_ROUNDUP(inlen * msb, 8);
+  unsigned char *v_packed = (unsigned char *)OPENSSL_malloc(packed_len);
+  uint32_t *v_unpacked = (uint32_t *)OPENSSL_malloc(inlen);
+
+  if (v_packed == NULL || v_unpacked == NULL) {
+    fprintf(stderr, "OPENSSL_malloc failed\n");
+    goto err;
+  }
+
+  BIO_printf(out, "Packing ");
+  for (i = 0; i < inlen; i++) BIO_printf(out, "%08X ", in[i]);
+  BIO_printf(out, "\n");
+
+  lwe_pack(v_packed, packed_len, in, inlen, msb);
+
+  BIO_printf(out, "Packed result ");
+  for (i = 0; i < packed_len; i++) BIO_printf(out, "%02X ", v_packed[i]);
+  BIO_printf(out, "\n");
+
+  lwe_unpack(v_unpacked, inlen, v_packed, packed_len, msb);
+
+  BIO_printf(out, "Unpacked result ");
+  for (i = 0; i < inlen; i++) BIO_printf(out, "%08X ", v_unpacked[i]);
+  BIO_printf(out, "\n");
+
+  uint32_t negmask = (1 << msb) - 1;
+
+  int match = 1;
+
+  for (i = 0; i < inlen; i++)
+    if ((in[i] ^ v_unpacked[i]) & negmask) match = 0;
+
+  if (!match) {
+    fprintf(stderr, "Pack/unpack failed to match\n");
+    goto err;
+  }
+
+  ret = 1;
+err:
+  ERR_print_errors_fp(stderr);
+
+  OPENSSL_free(v_packed);
+  OPENSSL_free(v_unpacked);
+
+  return ret;
+}
+
+static int test_packing_unpacking(BIO *out) {
+  uint32_t a[3] = {0x1, 0x2, 0x3};
+
+  uint32_t b[4] = {0x01000000, 0x02000000, 0x03000000, 0x04000000};
+
+  uint32_t c[5] = {0x01600000, 0x02700000, 0x03800000, 0x04900000, 0x05A00000};
+
+  if (!test_pack_unpack(out, a, 3, 32) || !test_pack_unpack(out, b, 4, 8) ||
+      !test_pack_unpack(out, c, 5, 9))
+    return 0;
+
+  return 1;
+}
+
 static int test_lwekex(BIO *out, int single) {
   LWE_PAIR *alice = NULL, *bob = NULL;
   LWE_REC *rec = NULL;
@@ -119,8 +188,6 @@ static int test_lwekex(BIO *out, int single) {
   unsigned char *assbuf = NULL, *bssbuf = NULL;
   size_t asslen, bsslen;
 
-  const int LWE_N_BAR = 3;
-  
   int i, ret = 0;
   uint32_t *v =
       (uint32_t *)OPENSSL_malloc(LWE_N_BAR * LWE_N_BAR * sizeof(uint32_t));
@@ -138,36 +205,52 @@ static int test_lwekex(BIO *out, int single) {
     goto err;
   }
 
+  if (single) {
+    BIO_puts(out, "Testing packing/unpacking  \n");
+    if (!test_packing_unpacking(out))
+      ;
+    //    goto err;
+  }
+
   if (single) BIO_puts(out, "Testing key generation  \n");
 
   if (single) BIO_puts(out, "Generating key for Alice (Server)\n");
   if (!LWE_PAIR_generate_key(alice, ctx, 1)) goto err;
   apublen = i2o_LWE_PUB(LWE_PAIR_get_publickey(alice), &apubbuf);
-  if (single)
-    BIO_printf(out, "  public B (%i bytes, %i 32-bit numbers) = ", (int)apublen,
-               (int)apublen / 4);
+  if (single) BIO_printf(out, "  public B (%d bytes) = ", (int)apublen);
   if (apublen <= 0) {
     fprintf(stderr, "Error in LWEKEX routines\n");
     ret = 0;
     goto err;
   }
   if (single) {
-    for (i = 0; i < 2; i++) {
-      BIO_printf(out, "0x%08X ", ((uint32_t *)apubbuf)[i]);
-    }
-    BIO_printf(out, "...0x%08X \n", ((uint32_t *)apubbuf)[(apublen / 4) - 1]);
+    BIO_printf(out, "0x%02X 0x%02X 0x%02X 0x%02X ... 0x%02X\n", apubbuf[0], apubbuf[1], apubbuf[3], apubbuf[4],
+               apubbuf[apublen - 1]);
   }
 
   if (single) BIO_puts(out, "Generating key for Bob (Client)\n");
   if (!LWE_PAIR_generate_key(bob, ctx, 0)) goto err;
   bpublen = i2o_LWE_PUB(LWE_PAIR_get_publickey(bob), &bpubbuf);
   if (single) {
-    BIO_printf(out, "  public B' (%i bytes, %i 32-bit numbers) = ", (int)bpublen,
-               (int)bpublen / 4);
-    for (i = 0; i < 2; i++) {
-      BIO_printf(out, "0x%08X ", ((uint32_t *)bpubbuf)[i]);
-    }
-    BIO_printf(out, "...0x%08X\n", ((uint32_t *)bpubbuf)[(bpublen / 4) - 1]);
+    BIO_printf(out, "  public B' (%i bytes) = ", (int)bpublen);
+    BIO_printf(out, "0x%02X 0x%02X 0x%02X 0x%02X ... 0x%02X\n", bpubbuf[0], bpubbuf[1], bpubbuf[3], bpubbuf[4],
+               bpubbuf[apublen - 1]);
+
+/*
+    uint32_t *pa = LWE_PAIR_get_privatekey(alice);
+    uint32_t *pb = LWE_PAIR_get_privatekey(bob);
+
+    int j1, j2;
+    for (j2 = 0; j2 < LWE_N_BAR; j2++)
+      for (j1 = 0; j1 < LWE_N_BAR; j1++) {
+        int sum = 0;
+        for (i = 0; i < LWE_N; i++)
+          sum += pa[i * LWE_N_BAR + j1] * pb[j2 * LWE_N + i];
+
+        BIO_printf(out, " cross product (Alice_s[%d] x Bob_s[%d]) = %X\n ", j1,
+                   j2, sum);
+      }
+*/
   }
 
   if (single) BIO_puts(out, "Testing Bob shared secret generation \n");
@@ -227,7 +310,7 @@ static int test_lwekex(BIO *out, int single) {
   }
 
   if ((bsslen != asslen) || (memcmp(assbuf, bssbuf, asslen) != 0)) {
-    if(single) {
+    if (single) {
       BIO_printf(out, " failed\n\n");
       fprintf(stderr, "Error in LWEKEX routines (mismatched shared secrets)\n");
     }
@@ -238,7 +321,7 @@ static int test_lwekex(BIO *out, int single) {
   }
 
   // computing the Hamming distance vector between v and w
-  if(single) {
+  if (single) {
     BIO_printf(out, "Hamming distance between the keys: [");
     for (i = 0; i < LWE_N_BAR * LWE_N_BAR; i++) {
       BIO_printf(out, "%08X", v[i] ^ w[i]);
@@ -247,15 +330,14 @@ static int test_lwekex(BIO *out, int single) {
     BIO_printf(out, "]\n");
 
     // computing the number of the lsb bits corrupted by noise
-  
+
     BIO_printf(out,
                "The number of corrupted least significant bits (out of 32): [");
     int count_bits = 0;
     int max = 0;
     for (i = 0; i < LWE_N_BAR * LWE_N_BAR; i++) {
-      int64_t diff =  (int64_t)v[i] - w[i];
-      if(diff < 0)
-        diff = -diff;
+      int64_t diff = (int64_t)v[i] - w[i];
+      if (diff < 0) diff = -diff;
       count_bits = 0;
       while (diff != 0) {
         count_bits++;

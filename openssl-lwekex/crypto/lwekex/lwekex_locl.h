@@ -67,8 +67,8 @@ extern "C" {
 
 struct lwe_param_st {
   int version;
-  uint32_t *a;            // 1024 x 1024
-  uint32_t *a_transpose;  // 1024 x 1024
+  uint32_t *a;            // N x N
+  uint32_t *a_transpose;  // N x N
   int references;
   int flags;
 };
@@ -76,7 +76,7 @@ struct lwe_param_st {
 struct lwe_pub_st {
   int version;
   LWE_PARAM *param;
-  uint32_t *b;  // for Server (1024 x 3), for Client (3 x 1024)
+  unsigned char *b;  // packed public key
   int references;
   int flags;
 };
@@ -84,7 +84,7 @@ struct lwe_pub_st {
 struct lwe_pair_st {
   int version;
   LWE_PUB *pub;
-  uint32_t *s;  // for Server (1024 x 3), for Client (3 x 1024)
+  uint32_t *s;  // for Server (N x N_BAR), for Client (N_BAR x N)
   int references;
   int flags;
 };

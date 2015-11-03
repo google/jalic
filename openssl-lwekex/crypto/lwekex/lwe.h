@@ -59,24 +59,32 @@
 
 // #define DEBUG_LOGS
 
-#define LWE_REC_BITS 20  // Number of bits extracted from a ring element.
+#define LWE_DIV_ROUNDUP(x, y) (((x) + (y) - 1) / y)
+
+#define LWE_EXTRACTED_BITS 15  // Number of bits extracted from a ring element.
 
 #define LWE_N \
   1024  // Dimensionality of the lattice. Should be divisible by 64, otherwise
         // need to fix sampling functions.
+
 #define LWE_N_BAR \
   3  // Number of vectors chosen by each of the parties. (The protocol is
-     // currenrly symmetric, LWE_M_HAT = LWE_N_HAT.) LWE_N_HAT * LWE_N_HAT
-     // should be divisible by 8
-#define LWE_KEY_LENGTH \
-  128  // The length of the resulting key in bits (TODO: make 256). Should be a
-       // multiple of 8 and satisfy LWE_KEY_LENGTH <= LWE_N_HAT * LWE_N_HAT *
-       // LWE_REC_BITS
+     // currenrly symmetric, LWE_M_HAT = LWE_N_HAT.)
 
-#define LWE_KEY_TRUNCATE 0  // The number of least significant bits that can be
-                            // truncated (or just be zeroed out).
+#define LWE_KEY_BITS \
+  128  // The length of the resulting key in bits. Should be a
+       // multiple of 8 and satisfy LWE_KEY_BITS <= LWE_N_HAT * LWE_N_HAT *
+       // LWE_EXTRACTED_BITS
 
-#define LWE_REC_LENGTH (((LWE_N_BAR * LWE_N_BAR + 7) / 8))
+#define LWE_TRUNCATED_BITS \
+  6  // The number of least significant bits that are truncated
+
+#define LWE_PUB_LENGTH \
+  LWE_DIV_ROUNDUP(LWE_N_BAR * LWE_N * (32 - LWE_TRUNCATED_BITS), 8)
+// Length (in bytes) of the vectors exchanged by parties
+
+#define LWE_REC_HINT_LENGTH LWE_DIV_ROUNDUP(LWE_N_BAR * LWE_N_BAR, 8)
+// Length (in bytes) of the reconciliation hint vector
 
 // It seems that nothing restricts the form of the modulus q, so we can stick to
 // 2^32, which means that we are using unsigned 32-bit integer.
@@ -92,32 +100,37 @@ void lwe_round2(unsigned char *out, uint32_t *in);
 void lwe_crossround2_ct(unsigned char *out, const uint32_t *in);
 void lwe_crossround2(unsigned char *out, const uint32_t *in);
 
-void lwe_rec_ct(unsigned char *out, uint32_t *w, const unsigned char *b);
-void lwe_rec(unsigned char *out, uint32_t *w, const unsigned char *b);
+void lwe_reconcile_ct(unsigned char *out, uint32_t *w, const unsigned char *hint);
+void lwe_reconcile(unsigned char *out, uint32_t *w, const unsigned char *hint);
 
 // multiply by s on the right
 // computes out = as + e
-// where a (1024 x 1024), s,e (1024 x 3),
-int lwe_key_gen_server(uint32_t *out, const uint32_t *a, const uint32_t *s,
-                        const uint32_t *e);
+// where a (N x N), s,e (N x N_BAR),
+int lwe_key_gen_server(unsigned char *out, const uint32_t *a, const uint32_t *s,
+                       const uint32_t *e);
 // multiply by s on the left
 // computes out = sa + e
-// where a (1024 x 1024), s,e (3 x 1024),
-void lwe_key_gen_client(uint32_t *out, const uint32_t *a_transpose,
+// where a (N x N), s,e (N_BAR x N),
+int lwe_key_gen_client(unsigned char *out, const uint32_t *a_transpose,
                         const uint32_t *s, const uint32_t *e);
 // multiply by s on the left
 // computes out = sb+e
-// where b (1024 x 3), s (3 x 1024), e (3 x 3)
+// where b (N x N_BAR), s (N_BAR x N), e (N_BAR x N_BAR)
 void lwe_key_derive_client(uint32_t *out, const uint32_t *b, const uint32_t *s,
                            const uint32_t *e);
 
 // round the entire vector to the nearest multiple of 2^b
 void lwe_key_round(uint32_t *vec, const size_t length, const int b);
 
+// round the entire vector to the nearest multiple of 2^b, using the hint vector
+// for direction of rounding where necessary
+void lwe_key_round_hints(uint32_t *vec, const size_t length, const int b,
+                            const unsigned char *hint);
+
 void lwe_pack(unsigned char *out, const size_t outlen, const uint32_t *in,
               const size_t inlen, const unsigned char msb);
 
-void lwe_key_round_directed(uint32_t *vec, const size_t length, const int b,
-                            const unsigned char *dir);
+void lwe_unpack(uint32_t *out, const size_t outlen, const unsigned char *in,
+              const size_t inlen, const unsigned char msb);
 
 #endif /* _LWE_H_ */

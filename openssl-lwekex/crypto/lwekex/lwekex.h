@@ -140,6 +140,7 @@ void ERR_load_LWEKEX_strings(void);
 #define LWEKEX_F_COMPUTE_KEY_BOB			 121
 #define LWEKEX_F_I2O_LWE_PUB				 100
 #define LWEKEX_F_I2O_LWE_REC				 104
+#define LWEKEX_F_KEY_GEN_CLIENT				 123
 #define LWEKEX_F_KEY_GEN_SERVER				 122
 #define LWEKEX_F_LWEKEX_				 107
 #define LWEKEX_F_LWEKEX_COMPUTE_KEY_ALICE		 108
