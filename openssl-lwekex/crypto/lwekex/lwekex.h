@@ -136,6 +136,7 @@ void ERR_load_LWEKEX_strings(void);
 /* Error codes for the LWEKEX functions. */
 
 /* Function codes. */
+#define LWEKEX_F_ADD_UNIF_NOISE				 124
 #define LWEKEX_F_COMPUTE_KEY_ALICE			 120
 #define LWEKEX_F_COMPUTE_KEY_BOB			 121
 #define LWEKEX_F_I2O_LWE_PUB				 100
@@ -165,6 +166,7 @@ void ERR_load_LWEKEX_strings(void);
 #define LWEKEX_R_INVALID_LENGTH				 102
 #define LWEKEX_R_KDF_FAILED				 100
 #define LWEKEX_R_RANDOM_FAILED				 101
+#define LWEKEX_R_UNIFNOISE_FAILURE			 103
 
 #ifdef  __cplusplus
 }

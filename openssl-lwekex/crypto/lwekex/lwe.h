@@ -61,7 +61,7 @@
 
 #define LWE_DIV_ROUNDUP(x, y) (((x) + (y) - 1) / y)
 
-#define LWE_EXTRACTED_BITS 15  // Number of bits extracted from a ring element.
+#define LWE_EXTRACTED_BITS 18  // Number of bits extracted from a ring element.
 
 #define LWE_N \
   1024  // Dimensionality of the lattice. Should be divisible by 64, otherwise
@@ -77,7 +77,7 @@
        // LWE_EXTRACTED_BITS
 
 #define LWE_TRUNCATED_BITS \
-  6  // The number of least significant bits that are truncated
+  4  // The number of least significant bits that are truncated
 
 #define LWE_PUB_LENGTH \
   LWE_DIV_ROUNDUP(LWE_N_BAR * LWE_N * (32 - LWE_TRUNCATED_BITS), 8)
@@ -108,13 +108,15 @@ void lwe_reconcile(unsigned char *out, uint32_t *w, const unsigned char *hint);
 // where a (N x N), s,e (N x N_BAR),
 int lwe_key_gen_server(unsigned char *out, const uint32_t *a, const uint32_t *s,
                        const uint32_t *e);
+
 // multiply by s on the left
 // computes out = sa + e
 // where a (N x N), s,e (N_BAR x N),
 int lwe_key_gen_client(unsigned char *out, const uint32_t *a_transpose,
                         const uint32_t *s, const uint32_t *e);
+
 // multiply by s on the left
-// computes out = sb+e
+// computes out = sb + e
 // where b (N x N_BAR), s (N_BAR x N), e (N_BAR x N_BAR)
 void lwe_key_derive_client(uint32_t *out, const uint32_t *b, const uint32_t *s,
                            const uint32_t *e);
@@ -132,5 +134,7 @@ void lwe_pack(unsigned char *out, const size_t outlen, const uint32_t *in,
 
 void lwe_unpack(uint32_t *out, const size_t outlen, const unsigned char *in,
               const size_t inlen, const unsigned char msb);
+
+int lwe_add_unif_noise(uint32_t *b, const size_t blen, const unsigned char lsb);
 
 #endif /* _LWE_H_ */

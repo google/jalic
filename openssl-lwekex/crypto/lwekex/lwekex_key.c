@@ -795,6 +795,16 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation,
   debug_printf("0x%08X 0x%08X ... 0x%08X\n", unpacked_b[0], unpacked_b[1],
                unpacked_b[LWE_N * LWE_N_BAR - 1]);
 
+  debug_printf("  Adding uniform noise to B\n");
+  if(!lwe_add_unif_noise(unpacked_b, LWE_N * LWE_N_BAR, LWE_TRUNCATED_BITS)) {
+    LWEKEXerr(LWEKEX_F_COMPUTE_KEY_BOB, LWEKEX_R_UNIFNOISE_FAILURE);
+    goto err;
+  }
+  
+  debug_printf("  B + noise = ");
+  debug_printf("0x%08X 0x%08X ... 0x%08X\n", unpacked_b[0], unpacked_b[1],
+               unpacked_b[LWE_N * LWE_N_BAR - 1]);
+   
   debug_printf("  Computing V = S'B + E'' = ");
 
   lwe_key_derive_client(v, unpacked_b, priv_pub_key->s, eprimeprime);
