@@ -61,7 +61,7 @@
 
 #define LWE_DIV_ROUNDUP(x, y) (((x) + (y) - 1) / y)
 
-#define LWE_EXTRACTED_BITS 18  // Number of bits extracted from a ring element.
+#define LWE_EXTRACTED_BITS 15  // Number of bits extracted from a ring element.
 
 #define LWE_N \
   1024  // Dimensionality of the lattice. Should be divisible by 64, otherwise
@@ -77,7 +77,7 @@
        // LWE_EXTRACTED_BITS
 
 #define LWE_TRUNCATED_BITS \
-  4  // The number of least significant bits that are truncated
+  6  // The number of least significant bits that are truncated
 
 #define LWE_PUB_LENGTH \
   LWE_DIV_ROUNDUP(LWE_N_BAR * LWE_N * (32 - LWE_TRUNCATED_BITS), 8)
