@@ -703,11 +703,7 @@ int LWEKEX_compute_key_alice(
   }
   debug_printf("\n");
 
-#if CONSTANT_TIME
-  lwe_reconcile_ct(ka, w, peer_reconciliation->c);
-#else
   lwe_reconcile(ka, w, peer_reconciliation->c);
-#endif
 
   debug_printf("  Computing key K = rec(B'S, C) = ");  // DEBUG LINE
   for (i = 0; i < (LWE_KEY_BITS >> 3); i++) {
@@ -816,14 +812,6 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation,
   }
   debug_printf("\n");
 
-#if CONSTANT_TIME
-  debug_printf("  Computing reconciliation hint: C = <V>_{2^%d} = ",
-               32 - LWE_EXTRACTED_BITS);
-  lwe_crossround2_ct(reconciliation->c, v);
-
-  debug_printf("  Computing key K = [V]_{2^%d} = ", 32 - LWE_EXTRACTED_BITS);
-  lwe_round2_ct(kb, v);
-#else
   debug_printf("  Computing reconciliation hint: C = <V>_{2^%d} = ",
                32 - LWE_EXTRACTED_BITS);
   lwe_crossround2(reconciliation->c, v);
@@ -836,7 +824,7 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation,
   debug_printf("  Computing key K = [V]_{2^%d} = ",
                32 - LWE_EXTRACTED_BITS);  // DEBUG LINE
   lwe_round2(kb, v);
-#endif
+
   for (i = 0; i < (LWE_KEY_BITS >> 3); i++) {
     // debug_printf("0x%08X ", ((uint32_t *)kb)[i]);
     binary_printf(kb[i], 8);

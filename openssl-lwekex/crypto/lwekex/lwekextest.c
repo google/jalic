@@ -62,16 +62,17 @@
 
 #include "../e_os.h"
 
-#include <openssl/opensslconf.h>
-#include <openssl/crypto.h>
 #include <openssl/bio.h>
 #include <openssl/bn.h>
+#include <openssl/crypto.h>
+#include <openssl/err.h>
 #include <openssl/objects.h>
+#include <openssl/opensslconf.h>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
-#include <openssl/err.h>
 
 #include "../crypto/lwekex/lwe.h"
+#include "../crypto/lwekex/lwe_table.h"
 
 #ifdef OPENSSL_NO_LWEKEX
 int main(int argc, char *argv[]) {
@@ -170,6 +171,85 @@ static int test_packing_unpacking(BIO *out) {
   return 1;
 }
 
+static int test_sampling(BIO *out) {
+  int ret = 0;
+
+  const uint32_t ROUNDS = 100;
+
+  uint32_t *counts = NULL, *s = NULL;
+
+  counts =  // counts for [-LWE_MAX_NOISE...LWE_MAX_NOISE - 1]
+      (uint32_t *)OPENSSL_malloc(2 * LWE_MAX_NOISE * sizeof(uint32_t));
+
+  s = (uint32_t *)OPENSSL_malloc(LWE_N * LWE_N_BAR * sizeof(uint32_t));
+
+  if ((counts == NULL) || (s == NULL)) goto err;
+
+  memset(counts, 0, sizeof(uint32_t) * 2 * LWE_MAX_NOISE);
+
+  BIO_printf(out, "Checking non-constant time sampling...\n");
+  int i, j;
+  for (i = 0; i < ROUNDS; i++) {
+    lwe_sample(s);
+    for (j = 0; j < LWE_N * LWE_N_BAR; j++) {
+      if (s[j] + LWE_MAX_NOISE >= 2 * LWE_MAX_NOISE) {
+        fprintf(stderr, "Element %d out of bounds\n", s[j]);
+        goto err;
+      }
+      counts[s[j] + LWE_MAX_NOISE]++;
+    }
+  }
+
+  uint64_t total = ROUNDS * LWE_N * LWE_N_BAR;
+  double chi_squared = 0;
+  int df = 0;  // degrees of freedom
+
+  for (i = 1; i < 2 * LWE_MAX_NOISE; i++) {
+    int v = abs(i - LWE_MAX_NOISE);
+    double expect;
+    if (v > 0)
+      expect = .5 * (double)(lwe_table[v][2] - lwe_table[v - 1][2]) /
+               UINT64_MAX * total;
+    else
+      expect = (double)(lwe_table[v][2]) / UINT64_MAX * total;
+
+    if (expect == 0) {
+      if (counts[i] == 0)
+        continue;
+      else {
+        fprintf(stderr,
+                "Element %d of probability 0%% is output by the sampling "
+                "procedure\n",
+                i - LWE_MAX_NOISE);
+        goto err;
+      }
+    }
+
+    double p = (counts[i] - expect) * (counts[i] - expect) / expect;
+
+    chi_squared += p;
+    df++;
+
+    BIO_printf(out, "count[%4i] = %d, expectation = %f\n", i - LWE_MAX_NOISE,
+               counts[i], expect);
+  }
+
+  BIO_printf(out, "The chi-squared statistic = %f (df = %d)\n", chi_squared,
+             df);
+
+  if (chi_squared > 2 * df)  // terrible fit!
+    goto err;
+
+  BIO_printf(out, "Checked.\n");
+  ret = 1;
+
+err:
+  OPENSSL_free(s);
+  OPENSSL_free(counts);
+
+  return ret;
+}
+
 static int test_lwekex(BIO *out, int single) {
   LWE_PAIR *alice = NULL, *bob = NULL;
   LWE_REC *rec = NULL;
@@ -206,10 +286,13 @@ static int test_lwekex(BIO *out, int single) {
   }
 
   if (single) {
-    BIO_puts(out, "Testing packing/unpacking  \n");
-    if (!test_packing_unpacking(out))
-      ;
-    //    goto err;
+    BIO_puts(out, "Testing packing/unpacking\n");
+    if (!test_packing_unpacking(out)) goto err;
+  }
+
+  if (single) {
+    BIO_puts(out, "Testing sampling routines\n");
+    if (!test_sampling(out)) goto err;
   }
 
   if (single) BIO_puts(out, "Testing key generation  \n");
@@ -224,8 +307,8 @@ static int test_lwekex(BIO *out, int single) {
     goto err;
   }
   if (single) {
-    BIO_printf(out, "0x%02X 0x%02X 0x%02X 0x%02X ... 0x%02X\n", apubbuf[0], apubbuf[1], apubbuf[3], apubbuf[4],
-               apubbuf[apublen - 1]);
+    BIO_printf(out, "0x%02X 0x%02X 0x%02X 0x%02X ... 0x%02X\n", apubbuf[0],
+               apubbuf[1], apubbuf[3], apubbuf[4], apubbuf[apublen - 1]);
   }
 
   if (single) BIO_puts(out, "Generating key for Bob (Client)\n");
@@ -233,24 +316,8 @@ static int test_lwekex(BIO *out, int single) {
   bpublen = i2o_LWE_PUB(LWE_PAIR_get_publickey(bob), &bpubbuf);
   if (single) {
     BIO_printf(out, "  public B' (%i bytes) = ", (int)bpublen);
-    BIO_printf(out, "0x%02X 0x%02X 0x%02X 0x%02X ... 0x%02X\n", bpubbuf[0], bpubbuf[1], bpubbuf[3], bpubbuf[4],
-               bpubbuf[apublen - 1]);
-
-/*
-    uint32_t *pa = LWE_PAIR_get_privatekey(alice);
-    uint32_t *pb = LWE_PAIR_get_privatekey(bob);
-
-    int j1, j2;
-    for (j2 = 0; j2 < LWE_N_BAR; j2++)
-      for (j1 = 0; j1 < LWE_N_BAR; j1++) {
-        int sum = 0;
-        for (i = 0; i < LWE_N; i++)
-          sum += pa[i * LWE_N_BAR + j1] * pb[j2 * LWE_N + i];
-
-        BIO_printf(out, " cross product (Alice_s[%d] x Bob_s[%d]) = %X\n ", j1,
-                   j2, sum);
-      }
-*/
+    BIO_printf(out, "0x%02X 0x%02X 0x%02X 0x%02X ... 0x%02X\n", bpubbuf[0],
+               bpubbuf[1], bpubbuf[3], bpubbuf[4], bpubbuf[apublen - 1]);
   }
 
   if (single) BIO_puts(out, "Testing Bob shared secret generation \n");

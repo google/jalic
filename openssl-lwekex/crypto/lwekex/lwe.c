@@ -53,13 +53,13 @@
  *
  */
 
-#include <stdio.h>
 #include <stdint.h>
-#include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-#include "lwe_a.h"
 #include "lwe.h"
+#include "lwe_a.h"
 #include "lwe_table.h"
 
 #define RANDOM192(c) \
@@ -209,7 +209,6 @@ void lwe_round2(unsigned char *out, uint32_t *in) {
            LWE_EXTRACTED_BITS);
 }
 
-// <.>_2
 void lwe_crossround2(unsigned char *out, const uint32_t *in) {
   int i;
   // out should have enough space for N_BAR * N_BAR bits
@@ -223,20 +222,9 @@ void lwe_crossround2(unsigned char *out, const uint32_t *in) {
     uint32_t remainder = in[i] & mask;
     out[i / 8] += (remainder >= half) << (i % 8);
   }
-  /*
-      // q/4 to q/2 and q/2 to q
-      if ((in[i] >> (31 - LWE_REC_BITS)) & 1) {
-        setbit(out, i);
-      }
-  */
 }
 
 void lwe_reconcile(unsigned char *out, uint32_t *w, const unsigned char *hint) {
-  lwe_reconcile_ct(out, w, hint);
-}
-
-void lwe_reconcile_ct(unsigned char *out, uint32_t *w,
-                      const unsigned char *hint) {
   lwe_key_round_hints(w, LWE_N_BAR * LWE_N_BAR, 32 - LWE_EXTRACTED_BITS, hint);
   lwe_pack(out, LWE_KEY_BITS >> 3, w, LWE_N_BAR * LWE_N_BAR,
            LWE_EXTRACTED_BITS);
@@ -382,37 +370,26 @@ void lwe_key_round_hints(uint32_t *vec, const size_t length, const int b,
   uint32_t negmask = ~mask;
   uint32_t half = 1 << (b - 1);
   uint32_t quarter = 1 << (b - 2);
-  uint32_t three_quarters = 3 * (1 << (b - 2));
 
   for (i = 0; i < length; i++) {
     uint32_t remainder = vec[i] & mask;
-    // printf("rounding 0x%08X (remainder = 0x%08X) ", vec[i], remainder);
-    if ((remainder >= quarter) &&
-        (remainder < three_quarters)) {  // use the hint
-      unsigned char h = (hint[i / 8] >> (i % 8)) % 2;
-      switch (h) {
-        case 0:
-          // printf("down ");
-          vec[i] = vec[i] & negmask;  // round down
-          break;
-        case 1:
-          // printf("up ");
-          vec[i] = (vec[i] + whole - 1) & negmask;  // round up
-          break;
-      }
-    } else {
-      // printf("to the nearest ");
-      vec[i] = (vec[i] + half) & negmask;  // round to the nearest
-    }
-    // printf(" result =  0x%08X\n", vec[i]);
+    uint32_t use_hint = ((remainder + quarter) >> (b - 1)) & 0x1;
+
+    unsigned char h = (hint[i / 8] >> (i % 8)) % 2;  // the hint
+    uint32_t shift = use_hint * (2 * h - 1) * quarter;
+
+    // if use_hint = 1 and h = 0, adding -quarter forces rounding down
+    //                     h = 1, adding quarter forces rounding up
+
+    vec[i] = (vec[i] + half + shift) & negmask;
   }
 }
 
 // Add uniform noise to the lsb bits of b
-int lwe_add_unif_noise(uint32_t *b, const size_t blen, const unsigned char lsb) {
+int lwe_add_unif_noise(uint32_t *b, const size_t blen,
+                       const unsigned char lsb) {
   size_t packed_len = LWE_DIV_ROUNDUP(blen * lsb, 8);
-  unsigned char *noise_packed =
-      (unsigned char *)OPENSSL_malloc(packed_len);
+  unsigned char *noise_packed = (unsigned char *)OPENSSL_malloc(packed_len);
   if (noise_packed == NULL) {
     LWEKEXerr(LWEKEX_F_ADD_UNIF_NOISE, ERR_R_MALLOC_FAILURE);
     return 0;
@@ -424,22 +401,21 @@ int lwe_add_unif_noise(uint32_t *b, const size_t blen, const unsigned char lsb) 
     LWEKEXerr(LWEKEX_F_ADD_UNIF_NOISE, ERR_R_MALLOC_FAILURE);
     return 0;
   }
-  
+
   RANDOM_VARS;
   RANDOMBUFF(noise_packed, packed_len);  // fill the array with noise
-  lwe_unpack(noise_unpacked, blen, noise_packed, packed_len, lsb); 
-  
-  uint32_t half = (1 << lsb) / 2;  // same as 1 << (lsb-1) except when lsb == 0 
+  lwe_unpack(noise_unpacked, blen, noise_packed, packed_len, lsb);
+
+  uint32_t half = (1 << lsb) / 2;  // same as 1 << (lsb-1) except when lsb == 0
   size_t i = 0;
-  for(i = 0; i < blen; i++)
-    b[i] += (noise_unpacked[i] >> (32 - lsb)) - half;
- 
+  for (i = 0; i < blen; i++) b[i] += (noise_unpacked[i] >> (32 - lsb)) - half;
+
   OPENSSL_cleanse(noise_unpacked, blen * sizeof(uint32_t));
   OPENSSL_free(noise_unpacked);
 
   OPENSSL_cleanse(noise_packed, packed_len);
-  OPENSSL_free(noise_packed); 
-  
+  OPENSSL_free(noise_packed);
+
   return 1;
 }
 

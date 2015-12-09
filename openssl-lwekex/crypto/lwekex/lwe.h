@@ -61,7 +61,7 @@
 
 #define LWE_DIV_ROUNDUP(x, y) (((x) + (y) - 1) / y)
 
-#define LWE_EXTRACTED_BITS 15  // Number of bits extracted from a ring element.
+#define LWE_EXTRACTED_BITS 15 // Number of bits extracted from a ring element.
 
 #define LWE_N \
   1024  // Dimensionality of the lattice. Should be divisible by 64, otherwise
@@ -94,7 +94,7 @@ void lwe_sample(uint32_t *s);
 void lwe_sample_n_ct(uint32_t *s, int n);
 void lwe_sample_n(uint32_t *s, int n);
 
-void lwe_round2_ct(unsigned char *out, const uint32_t *in);
+void lwe_round2_ct(unsigned char *out, uint32_t *in);
 void lwe_round2(unsigned char *out, uint32_t *in);
 
 void lwe_crossround2_ct(unsigned char *out, const uint32_t *in);
