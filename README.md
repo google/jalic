@@ -24,14 +24,11 @@ make
 Benchmarks
 ----------
 
-## Timing
-
 To get timing information for key generation and key derivation:
 ```
 apps/openssl speed lwekex
 ```
 
-## Message sizes
 To see message sizes during protocol execution, first run a server:
 ```
 apps/openssl s_server -cert ../testcert.pem -accept 4433
@@ -59,7 +56,7 @@ In the output, message bytes are annotated with their length as follows:
     c1 3e 4a c2 73 92 15 46 9c 94 73 20 59 70 6b 1b
 ...
 ```
-The length here is 0x270a or 9994 bytes.
+The message length in the client's key exchange step is `0x270a` or 9994 bytes.
 
 
 Tests
