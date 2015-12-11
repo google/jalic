@@ -83,14 +83,15 @@ rlwekex_err.o: ../../include/openssl/opensslv.h
 rlwekex_err.o: ../../include/openssl/ossl_typ.h ../../include/openssl/rlwekex.h
 rlwekex_err.o: ../../include/openssl/safestack.h ../../include/openssl/stack.h
 rlwekex_err.o: ../../include/openssl/symhacks.h rlwekex_err.c
-rlwekex_key.o: ../../include/openssl/bio.h ../../include/openssl/bn.h
-rlwekex_key.o: ../../include/openssl/crypto.h ../../include/openssl/e_os2.h
-rlwekex_key.o: ../../include/openssl/err.h ../../include/openssl/lhash.h
+rlwekex_key.o: ../../include/openssl/aes.h ../../include/openssl/bio.h
+rlwekex_key.o: ../../include/openssl/bn.h ../../include/openssl/crypto.h
+rlwekex_key.o: ../../include/openssl/e_os2.h ../../include/openssl/err.h
+rlwekex_key.o: ../../include/openssl/lhash.h
 rlwekex_key.o: ../../include/openssl/opensslconf.h
 rlwekex_key.o: ../../include/openssl/opensslv.h
 rlwekex_key.o: ../../include/openssl/ossl_typ.h ../../include/openssl/rand.h
 rlwekex_key.o: ../../include/openssl/rlwekex.h
 rlwekex_key.o: ../../include/openssl/safestack.h ../../include/openssl/stack.h
-rlwekex_key.o: ../../include/openssl/symhacks.h rlwekexlib/fft.h rlwekexlib/fft.c 
-rlwekex_key.o: rlwekexlib/rlwe.h rlwekexlib/rlwe.c rlwekexlib/rlwe_a.h
-rlwekex_key.o: rlwekexlib/rlwe_table.h rlwekex_key.c rlwekex_locl.h
+rlwekex_key.o: ../../include/openssl/symhacks.h rlwekex_key.c rlwekex_locl.h
+rlwekex_key.o: rlwekexlib/fft.c rlwekexlib/fft.h rlwekexlib/rlwe.c
+rlwekex_key.o: rlwekexlib/rlwe.h rlwekexlib/rlwe_a.h rlwekexlib/rlwe_table.h

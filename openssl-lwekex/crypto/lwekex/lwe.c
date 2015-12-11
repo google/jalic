@@ -134,7 +134,9 @@ void lwe_sample_ct(uint32_t *s) {
   RANDOM_VARS;
   int i, j, k, index = 0;
   for (k = 0; k < LWE_N_BAR; k++) {
-    for (i = 0; i < (LWE_N >> 6); i++) {  // 1024 >> 6 = 16
+    // Batch sampling 64 samples at a time to consume
+    // randomness from RANDOM64 for the sign bit of the sample
+    for (i = 0; i < (LWE_N >> 6); i++) {  // 1024 >> 6 for 1024 / 64
       uint64_t r = RANDOM64;
       for (j = 0; j < 64; j++) {
         uint64_t rnd[3];

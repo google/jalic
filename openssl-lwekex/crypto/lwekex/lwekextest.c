@@ -456,7 +456,8 @@ int main(int argc, char *argv[]) {
 
   if (argc == 1) {
     if (!test_lwekex(out, 1)) goto err;
-  } else {
+  } else if (argc == 2 && !strcmp((const char *)argv[1], "cont")) {
+    BIO_printf(out, "Running continuous test. ^C to quit.\n\n");
     int iterations = 0;
     int failures = 0;
     time_t starttime = time(NULL);
@@ -472,6 +473,9 @@ int main(int argc, char *argv[]) {
         if (iterations > (1 << 20)) break;
       }
     }
+  } else {
+    BIO_printf(out, "Error: argument must be \"cont\" for invoking \
+continuously run test.\n");
   }
 
   ret = 0;

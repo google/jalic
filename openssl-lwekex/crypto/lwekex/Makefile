@@ -82,11 +82,11 @@ clean:
 lwekex_err.o: ../../include/openssl/bio.h ../../include/openssl/bn.h
 lwekex_err.o: ../../include/openssl/crypto.h ../../include/openssl/e_os2.h
 lwekex_err.o: ../../include/openssl/err.h ../../include/openssl/lhash.h
+lwekex_err.o: ../../include/openssl/lwekex.h
 lwekex_err.o: ../../include/openssl/opensslconf.h
 lwekex_err.o: ../../include/openssl/opensslv.h ../../include/openssl/ossl_typ.h
-lwekex_err.o: ../../include/openssl/rlwekex.h ../../include/openssl/safestack.h
-lwekex_err.o: ../../include/openssl/stack.h ../../include/openssl/symhacks.h
-lwekex_err.o: lwekex_err.c
+lwekex_err.o: ../../include/openssl/safestack.h ../../include/openssl/stack.h
+lwekex_err.o: ../../include/openssl/symhacks.h lwekex_err.c
 lwekex_key.o: ../../include/openssl/aes.h ../../include/openssl/bio.h
 lwekex_key.o: ../../include/openssl/bn.h ../../include/openssl/crypto.h
 lwekex_key.o: ../../include/openssl/e_os2.h ../../include/openssl/err.h
