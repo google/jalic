@@ -6,7 +6,7 @@ Post-quantum key exchange from the learning with errors problem
 This software implements a key exchange protocol from the learning with errors
 (LWE) problem. It additionally contains optimizations for reducing the
 bandwidth of the protocol. For further details, see the extended abstract
-available at: http://crypto.stanford.edu/~ananthr/docs/lwe-key-exchange.pdf
+available at: https://github.com/google/jalic/blob/master/lwe-key-exchange.pdf
 
 Installation
 ------------
