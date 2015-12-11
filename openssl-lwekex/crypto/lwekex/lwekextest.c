@@ -112,7 +112,7 @@ static int test_pack_unpack(BIO *out, uint32_t *in, size_t inlen,
 
   size_t packed_len = LWE_DIV_ROUNDUP(inlen * msb, 8);
   unsigned char *v_packed = (unsigned char *)OPENSSL_malloc(packed_len);
-  uint32_t *v_unpacked = (uint32_t *)OPENSSL_malloc(inlen);
+  uint32_t *v_unpacked = (uint32_t *)OPENSSL_malloc(inlen * sizeof(uint32_t));
 
   if (v_packed == NULL || v_unpacked == NULL) {
     fprintf(stderr, "OPENSSL_malloc failed\n");
