@@ -60,48 +60,14 @@
 
 #include "lwe.h"
 #include "lwe_a.h"
-#include "lwe_table.h"
+//#include "lwe_table.h"
+#include "lwe_noise.h"
 
 #define RANDOM192(c) \
   c[0] = RANDOM64;   \
   c[1] = RANDOM64;   \
   c[2] = RANDOM64;
 
-/* Returns 0 if a >= b
- * Returns 1 if a < b
- * Where a and b are both 3-limb 64-bit integers.
- * This function runs in constant time.
- */
-static int cmplt_ct(uint64_t *a, uint64_t *b) {
-  int m;
-  m = a[0] >= b[0];
-  m = (a[1] >= b[1]) | ((a[1] == b[1]) & m);
-  m = (a[2] >= b[2]) | ((a[2] == b[2]) & m);
-  return (m == 0);
-}
-
-static uint32_t single_sample(uint64_t *in) {
-  int i = 0;
-
-  while (cmplt_ct(lwe_table[i], in))  // ~3.5 comparisons in expectation
-    i++;
-
-  return i;
-}
-
-/* Constant time version. */
-static uint32_t single_sample_ct(uint64_t *in) {
-  uint32_t index = 0, i;
-
-  for (i = 0; i < LWE_MAX_NOISE; i++) {
-    uint32_t mask1, mask2;
-    mask1 = cmplt_ct(in, lwe_table[i]);
-    mask1 = (uint32_t)(0 - (int32_t)mask1);
-    mask2 = (~mask1);
-    index = ((index & mask1) | (i & mask2));
-  }
-  return index;
-}
 
 void lwe_sample_n_ct(uint32_t *s, int n) {
   RANDOM_VARS;
@@ -121,8 +87,7 @@ void lwe_sample_n_ct(uint32_t *s, int n) {
       m = (r & 1);
       r >>= 1;
       m = 2 * m - 1;
-      // use the constant time version single_sample
-      s[index] = single_sample_ct(rnd);
+      s[index] = SINGLE_SAMPLE_CT(rnd);
       t = 0xFFFFFFFF - s[index];
       s[index] = ((t & (uint32_t)m) | (s[index] & (~((uint32_t)m))));
     }
@@ -146,8 +111,7 @@ void lwe_sample_ct(uint32_t *s) {
         m = (r & 1);
         r >>= 1;
         m = 2 * m - 1;
-        // use the constant time version single_sample
-        s[index] = single_sample_ct(rnd);
+        s[index] = SINGLE_SAMPLE_CT(rnd);
         // printf("    * %i: 0x%08X\n", index, s[index]);
         t = 0xFFFFFFFF - s[index];
         s[index] = ((t & (uint32_t)m) | (s[index] & (~((uint32_t)m))));
@@ -170,7 +134,7 @@ void lwe_sample_n(uint32_t *s, int n) {
       m = (r & 1);
       r >>= 1;
       m = 2 * m - 1;
-      s[index] = single_sample(rnd);
+      s[index] = SINGLE_SAMPLE(rnd);
       if (m == -1) {
         s[index] = 0xFFFFFFFF - s[index];
       }
@@ -192,7 +156,7 @@ void lwe_sample(uint32_t *s) {
       uint64_t rnd[3 * 64];
       RANDOMBUFF((unsigned char *)rnd, sizeof(rnd));
       for (j = 0; j < 64; j++) {
-        s[index] = single_sample(rnd + 3 * j);
+        s[index] = SINGLE_SAMPLE(rnd + 3 * j);
         if ((r >> j) & 1) {
           s[index] =
               -s[index];  // since s is unsigned, equivalent to 2^32 - s[index]

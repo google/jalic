@@ -162,6 +162,7 @@ void randombuff(unsigned char *buff, int num) {
 }
 #endif
 
+#include "lwe_noise.c"
 #include "lwe.c"
 
 // #define DEBUG_LOGS
