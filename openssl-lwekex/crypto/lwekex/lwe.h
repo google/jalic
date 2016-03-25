@@ -88,10 +88,6 @@
 
 // It seems that nothing restricts the form of the modulus q, so we can stick to
 // 2^32, which means that we are using unsigned 32-bit integer.
-
-void lwe_sample_ct(uint32_t *s);
-void lwe_sample(uint32_t *s);
-void lwe_sample_n_ct(uint32_t *s, int n);
 void lwe_sample_n(uint32_t *s, int n);
 
 void lwe_round2_ct(unsigned char *out, uint32_t *in);

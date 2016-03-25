@@ -64,11 +64,15 @@
 
 #include <stdint.h>
 
-#define SINGLE_SAMPLE single_sample
-#define SINGLE_SAMPLE_CT single_sample_ct
+#define SINGLE_SAMPLE single_sample_table
+#define SINGLE_SAMPLE_CT single_sample_table_ct
 
 // table-based method
-static uint32_t single_sample(uint64_t *in);
-static uint32_t single_sample_ct(uint64_t *in);
+static uint32_t single_sample_table(uint64_t *in);
+static uint32_t single_sample_table_ct(uint64_t *in);
+
+// sampling from the binomial
+static uint32_t single_sample_binomial(uint64_t *in);
+static uint32_t single_sample_binomial_ct(uint64_t *in);
 
 #endif

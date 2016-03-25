@@ -80,7 +80,7 @@ int cmplt_ct(uint64_t *a, uint64_t *b) {
   return (m == 0);
 }
 
-static uint32_t single_sample(uint64_t *in) {
+static uint32_t single_sample_table(uint64_t *in) {
   int i = 0;
 
   while (cmplt_ct(lwe_table[i], in))  // ~3.5 comparisons in expectation
@@ -90,7 +90,7 @@ static uint32_t single_sample(uint64_t *in) {
 }
 
 /* Constant time version. */
-static uint32_t single_sample_ct(uint64_t *in) {
+static uint32_t single_sample_table_ct(uint64_t *in) {
   uint32_t index = 0, i;
 
   for (i = 0; i < LWE_MAX_NOISE; i++) {
@@ -103,7 +103,29 @@ static uint32_t single_sample_ct(uint64_t *in) {
   return index;
 }
 
-/****************
- * ALIAS METHOD *
- ****************/
+/**************************
+ * BINOMIAL APPROXIMATION *
+ **************************/
 
+static uint32_t single_sample_binomial(uint64_t *in) {
+  int i = 0;
+
+  while (cmplt_ct(lwe_table[i], in))  // ~3.5 comparisons in expectation
+    i++;
+
+  return i;
+}
+
+/* Constant time version. */
+static uint32_t single_sample_binomial_ct(uint64_t *in) {
+  uint32_t index = 0, i;
+
+  for (i = 0; i < LWE_MAX_NOISE; i++) {
+    uint32_t mask1, mask2;
+    mask1 = cmplt_ct(in, lwe_table[i]);
+    mask1 = (uint32_t)(0 - (int32_t)mask1);
+    mask2 = (~mask1);
+    index = ((index & mask1) | (i & mask2));
+  }
+  return index;
+}

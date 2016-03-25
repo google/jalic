@@ -481,7 +481,7 @@ void LWE_REC_free(LWE_REC *r) {
 int LWE_PAIR_generate_key(LWE_PAIR *key, LWE_CTX *ctx, char isForServer) {
   int ok = 0;
 
-  uint32_t *e = NULL;
+  int32_t *e = NULL;
 
   key->pub = LWE_PUB_new();
   if (key->pub == NULL) {
@@ -493,19 +493,15 @@ int LWE_PAIR_generate_key(LWE_PAIR *key, LWE_CTX *ctx, char isForServer) {
     goto err;
   }
 
-  e = (uint32_t *)OPENSSL_malloc(LWE_N * LWE_N_BAR * sizeof(uint32_t));
+  e = (int32_t *)OPENSSL_malloc(LWE_N * LWE_N_BAR * sizeof(int32_t));
   if (e == NULL) {
     LWEKEXerr(LWEKEX_F_LWE_PAIR_GENERATE_KEY, ERR_R_MALLOC_FAILURE);
     goto err;
   }
 
-#if CONSTANT_TIME
-  lwe_sample_ct(key->s);
-  lwe_sample_ct(e);
-#else
-  lwe_sample(key->s);
-  lwe_sample(e);
-#endif
+  lwe_sample_n(key->s, LWE_N * LWE_N_BAR);
+  lwe_sample_n(e, LWE_N * LWE_N_BAR);
+
   // find min/max S
   int32_t signed_s_min = key->s[0], signed_s_max = key->s[0];
   int i;
@@ -776,11 +772,7 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation,
     goto err;
   }
 
-#if CONSTANT_TIME
-  lwe_sample_n_ct(eprimeprime, LWE_N_BAR * LWE_N_BAR);
-#else
   lwe_sample_n(eprimeprime, LWE_N_BAR * LWE_N_BAR);
-#endif
 
   debug_printf("%d %d ... %d\n", eprimeprime[0], eprimeprime[1],
                eprimeprime[LWE_N_BAR * LWE_N_BAR - 1]);

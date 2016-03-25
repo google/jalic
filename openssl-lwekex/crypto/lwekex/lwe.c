@@ -68,101 +68,27 @@
   c[1] = RANDOM64;   \
   c[2] = RANDOM64;
 
-
-void lwe_sample_n_ct(uint32_t *s, int n) {
-  RANDOM_VARS;
-  int j, k, index;
-  int number_of_batches = (n + 63) / 64;  // ceil(n / 64)
-  for (k = 0; k < number_of_batches; k++) {
-    uint64_t r = RANDOM64;
-    for (j = 0; j < 64; j++) {
-      index = k * 64 + j;
-      if (index >= n) {
-        return;
-      }
-      uint64_t rnd[3];
-      int32_t m;
-      uint32_t t;
-      RANDOMBUFF((unsigned char *)rnd, 24);
-      m = (r & 1);
-      r >>= 1;
-      m = 2 * m - 1;
-      s[index] = SINGLE_SAMPLE_CT(rnd);
-      t = 0xFFFFFFFF - s[index];
-      s[index] = ((t & (uint32_t)m) | (s[index] & (~((uint32_t)m))));
-    }
-  }
-}
-
-// s (N_BAR x N)
-void lwe_sample_ct(uint32_t *s) {
-  RANDOM_VARS;
-  int i, j, k, index = 0;
-  for (k = 0; k < LWE_N_BAR; k++) {
-    // Batch sampling 64 samples at a time to consume
-    // randomness from RANDOM64 for the sign bit of the sample
-    for (i = 0; i < (LWE_N >> 6); i++) {  // 1024 >> 6 for 1024 / 64
-      uint64_t r = RANDOM64;
-      for (j = 0; j < 64; j++) {
-        uint64_t rnd[3];
-        int32_t m;
-        uint32_t t;
-        RANDOM192(rnd);
-        m = (r & 1);
-        r >>= 1;
-        m = 2 * m - 1;
-        s[index] = SINGLE_SAMPLE_CT(rnd);
-        // printf("    * %i: 0x%08X\n", index, s[index]);
-        t = 0xFFFFFFFF - s[index];
-        s[index] = ((t & (uint32_t)m) | (s[index] & (~((uint32_t)m))));
-        index++;
-      }
-    }
-  }
-}
+#define CONST_TIME_TERNARY_IF(COND, V1, V2) ((COND) * (V1) + (1 - (COND)) * (V2))
 
 void lwe_sample_n(uint32_t *s, int n) {
   RANDOM_VARS;
-  int j, k, index = 0;
+  int k, index = 0;
   int number_of_batches = (n + 63) / 64;  // ceil(n / 64)
   for (k = 0; k < number_of_batches; k++) {
     uint64_t r = RANDOM64;
-    for (j = 0; j < 64; j++) {
+    uint64_t bound = index + 64 < n ? index + 64: n; // min(index + 64, n)
+    for (; index < bound; index++) {
       uint64_t rnd[3];
-      int32_t m;
       RANDOM192(rnd);
-      m = (r & 1);
-      r >>= 1;
-      m = 2 * m - 1;
+#if CONSTANT_TIME
+      uint32_t sample = SINGLE_SAMPLE_CT(rnd);
+      s[index] = CONST_TIME_TERNARY_IF(r & 1, sample, -sample);
+#else
       s[index] = SINGLE_SAMPLE(rnd);
-      if (m == -1) {
-        s[index] = 0xFFFFFFFF - s[index];
-      }
-      index++;
-      if (index >= n) {
-        return;
-      }
-    }
-  }
-}
-
-// s (N_BAR x N)
-void lwe_sample(uint32_t *s) {
-  RANDOM_VARS;
-  int i, j, k, index = 0;
-  for (k = 0; k < LWE_N_BAR; k++) {
-    for (i = 0; i < (LWE_N >> 6); i++) {  // 1024 >> 6 = 16
-      uint64_t r = RANDOM64;
-      uint64_t rnd[3 * 64];
-      RANDOMBUFF((unsigned char *)rnd, sizeof(rnd));
-      for (j = 0; j < 64; j++) {
-        s[index] = SINGLE_SAMPLE(rnd + 3 * j);
-        if ((r >> j) & 1) {
-          s[index] =
-              -s[index];  // since s is unsigned, equivalent to 2^32 - s[index]
-        }
-        index++;
-      }
+      if (r & 1)
+        s[index] = -s[index];
+#endif
+      r >>= 1;
     }
   }
 }

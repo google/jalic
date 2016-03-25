@@ -59,7 +59,7 @@
 
 #include <openssl/lwekex.h>
 
-#define CONSTANT_TIME 0
+#define CONSTANT_TIME 1
 
 #ifdef __cplusplus
 extern "C" {

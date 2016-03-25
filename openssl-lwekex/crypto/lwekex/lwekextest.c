@@ -187,16 +187,17 @@ static int test_sampling(BIO *out) {
 
   memset(counts, 0, sizeof(uint32_t) * 2 * LWE_MAX_NOISE);
 
-  BIO_printf(out, "Checking non-constant time sampling...\n");
+  BIO_printf(out, "Checking distribution...\n");
   int i, j;
   for (i = 0; i < ROUNDS; i++) {
-    lwe_sample(s);
+    lwe_sample_n(s, LWE_N * LWE_N_BAR);
     for (j = 0; j < LWE_N * LWE_N_BAR; j++) {
       if (s[j] + LWE_MAX_NOISE >= 2 * LWE_MAX_NOISE) {
         fprintf(stderr, "Element %d out of bounds\n", s[j]);
         goto err;
       }
       counts[s[j] + LWE_MAX_NOISE]++;
+      BIO_printf(out, "%d\n", s[j]);
     }
   }
 
