@@ -52,56 +52,28 @@
  *
  */
 
-/* crypto/lwekex/lwekex_locl.h */
+/* crypto/lwekex/lwe_noise.h */
+#ifndef HEADER_LWE_NOISE_H
+#define HEADER_LWE_NOISE_H
 
-#ifndef HEADER_LWEKEX_LOCL_H
-#define HEADER_LWEKEX_LOCL_H
+#include <openssl/opensslconf.h>
 
-#include <openssl/lwekex.h>
-
-#ifdef __cplusplus
-extern "C" {
+#ifdef OPENSSL_NO_LWEKEX
+#error LWEKEX is disabled.
 #endif
 
-struct lwe_param_st {
-  int version;
-  uint32_t *a;            // N x N
-  uint32_t *a_transpose;  // N x N
-  int references;
-  int flags;
-};
+#include <stdint.h>
 
-struct lwe_pub_st {
-  int version;
-  LWE_PARAM *param;
-  unsigned char *b;  // packed public key
-  int references;
-  int flags;
-};
+// Choice of how strict is the requirement of constant time:
+//   0: no constraints
+//   1: run time is constant except for table access patterns that are not,
+//      may be vulnerable to cache-timing attacks
+//   2: run time is constant, and table access patterns are fixed too
+#define LWE_SAMPLE_CONST_TIME_LEVEL 0
 
-struct lwe_pair_st {
-  int version;
-  LWE_PUB *pub;
-  uint32_t *s;  // for Server (N x N_BAR), for Client (N_BAR x N)
-  int references;
-  int flags;
-};
+// Choice of noise generation routine
+#define LWE_SAMPLE_N lwe_sample_n_table  // table-based method
+// #define LWE_SAMPLE_N lwe_sample_n_binomial // samples from the binomial
+// #define LWE_SAMPLE_N lwe_sample_n_alias // applies the alias method
 
-struct lwe_rec_st {
-  int version;
-  unsigned char *c;  // at least N_BAR * N_BAR bits 
-  int references;
-  int flags;
-};
-
-struct lwe_ctx_st {
-  int version;
-  int references;
-  int flags;
-};
-
-#ifdef __cplusplus
-}
 #endif
-
-#endif /* HEADER_LWEKEX_LOCL_H */

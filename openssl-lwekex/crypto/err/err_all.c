@@ -164,5 +164,11 @@ void ERR_load_crypto_strings(void)
 #ifndef OPENSSL_NO_JPAKE
 	ERR_load_JPAKE_strings();
 #endif
+#ifndef OPENSSL_NO_RLWEKEX
+  ERR_load_RLWEKEX_strings();
+#endif
+#ifndef OPENSSL_NO_LWEKEX
+	ERR_load_LWEKEX_strings();
+#endif
 #endif
 	}

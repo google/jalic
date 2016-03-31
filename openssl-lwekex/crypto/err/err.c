@@ -156,6 +156,8 @@ static ERR_STRING_DATA ERR_str_libraries[]=
 {ERR_PACK(ERR_LIB_FIPS,0,0)		,"FIPS routines"},
 {ERR_PACK(ERR_LIB_CMS,0,0)		,"CMS routines"},
 {ERR_PACK(ERR_LIB_HMAC,0,0)		,"HMAC routines"},
+{ERR_PACK(ERR_LIB_RLWEKEX,0,0)   ,"RLWEKEX routines"},
+{ERR_PACK(ERR_LIB_LWEKEX,0,0)   ,"LWEKEX routines"},
 {0,NULL},
 	};
 

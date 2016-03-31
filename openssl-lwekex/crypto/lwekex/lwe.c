@@ -60,148 +60,6 @@
 
 #include "lwe.h"
 #include "lwe_a.h"
-#include "lwe_table.h"
-
-#define RANDOM192(c) \
-  c[0] = RANDOM64;   \
-  c[1] = RANDOM64;   \
-  c[2] = RANDOM64;
-
-/* Returns 0 if a >= b
- * Returns 1 if a < b
- * Where a and b are both 3-limb 64-bit integers.
- * This function runs in constant time.
- */
-static int cmplt_ct(uint64_t *a, uint64_t *b) {
-  int m;
-  m = a[0] >= b[0];
-  m = (a[1] >= b[1]) | ((a[1] == b[1]) & m);
-  m = (a[2] >= b[2]) | ((a[2] == b[2]) & m);
-  return (m == 0);
-}
-
-static uint32_t single_sample(uint64_t *in) {
-  int i = 0;
-
-  while (cmplt_ct(lwe_table[i], in))  // ~3.5 comparisons in expectation
-    i++;
-
-  return i;
-}
-
-/* Constant time version. */
-static uint32_t single_sample_ct(uint64_t *in) {
-  uint32_t index = 0, i;
-
-  for (i = 0; i < LWE_MAX_NOISE; i++) {
-    uint32_t mask1, mask2;
-    mask1 = cmplt_ct(in, lwe_table[i]);
-    mask1 = (uint32_t)(0 - (int32_t)mask1);
-    mask2 = (~mask1);
-    index = ((index & mask1) | (i & mask2));
-  }
-  return index;
-}
-
-void lwe_sample_n_ct(uint32_t *s, int n) {
-  RANDOM_VARS;
-  int j, k, index;
-  int number_of_batches = (n + 63) / 64;  // ceil(n / 64)
-  for (k = 0; k < number_of_batches; k++) {
-    uint64_t r = RANDOM64;
-    for (j = 0; j < 64; j++) {
-      index = k * 64 + j;
-      if (index >= n) {
-        return;
-      }
-      uint64_t rnd[3];
-      int32_t m;
-      uint32_t t;
-      RANDOMBUFF((unsigned char *)rnd, 24);
-      m = (r & 1);
-      r >>= 1;
-      m = 2 * m - 1;
-      // use the constant time version single_sample
-      s[index] = single_sample_ct(rnd);
-      t = 0xFFFFFFFF - s[index];
-      s[index] = ((t & (uint32_t)m) | (s[index] & (~((uint32_t)m))));
-    }
-  }
-}
-
-// s (N_BAR x N)
-void lwe_sample_ct(uint32_t *s) {
-  RANDOM_VARS;
-  int i, j, k, index = 0;
-  for (k = 0; k < LWE_N_BAR; k++) {
-    // Batch sampling 64 samples at a time to consume
-    // randomness from RANDOM64 for the sign bit of the sample
-    for (i = 0; i < (LWE_N >> 6); i++) {  // 1024 >> 6 for 1024 / 64
-      uint64_t r = RANDOM64;
-      for (j = 0; j < 64; j++) {
-        uint64_t rnd[3];
-        int32_t m;
-        uint32_t t;
-        RANDOM192(rnd);
-        m = (r & 1);
-        r >>= 1;
-        m = 2 * m - 1;
-        // use the constant time version single_sample
-        s[index] = single_sample_ct(rnd);
-        // printf("    * %i: 0x%08X\n", index, s[index]);
-        t = 0xFFFFFFFF - s[index];
-        s[index] = ((t & (uint32_t)m) | (s[index] & (~((uint32_t)m))));
-        index++;
-      }
-    }
-  }
-}
-
-void lwe_sample_n(uint32_t *s, int n) {
-  RANDOM_VARS;
-  int j, k, index = 0;
-  int number_of_batches = (n + 63) / 64;  // ceil(n / 64)
-  for (k = 0; k < number_of_batches; k++) {
-    uint64_t r = RANDOM64;
-    for (j = 0; j < 64; j++) {
-      uint64_t rnd[3];
-      int32_t m;
-      RANDOM192(rnd);
-      m = (r & 1);
-      r >>= 1;
-      m = 2 * m - 1;
-      s[index] = single_sample(rnd);
-      if (m == -1) {
-        s[index] = 0xFFFFFFFF - s[index];
-      }
-      index++;
-      if (index >= n) {
-        return;
-      }
-    }
-  }
-}
-
-// s (N_BAR x N)
-void lwe_sample(uint32_t *s) {
-  RANDOM_VARS;
-  int i, j, k, index = 0;
-  for (k = 0; k < LWE_N_BAR; k++) {
-    for (i = 0; i < (LWE_N >> 6); i++) {  // 1024 >> 6 = 16
-      uint64_t r = RANDOM64;
-      uint64_t rnd[3 * 64];
-      RANDOMBUFF((unsigned char *)rnd, sizeof(rnd));
-      for (j = 0; j < 64; j++) {
-        s[index] = single_sample(rnd + 3 * j);
-        if ((r >> j) & 1) {
-          s[index] =
-              -s[index];  // since s is unsigned, equivalent to 2^32 - s[index]
-        }
-        index++;
-      }
-    }
-  }
-}
 
 // [.]_2
 void lwe_round2(unsigned char *out, uint32_t *in) {
@@ -241,16 +99,16 @@ int lwe_key_gen_server(unsigned char *out, const uint32_t *a, const uint32_t *s,
   size_t i, j, k, index = 0;
 
   uint32_t *s_transpose =
-      (uint32_t *)OPENSSL_malloc(LWE_N_BAR * LWE_N * sizeof(uint32_t));
+      (uint32_t *)OPENSSL_malloc(LWE_N_BAR * LWE_N * sizeof(int32_t));
   if (s_transpose == NULL) {
-    LWEKEXerr(LWEKEX_F_KEY_GEN_SERVER, ERR_R_MALLOC_FAILURE);
+    LWEKEXerr(LWEKEX_F_LWE_KEY_GEN_SERVER, ERR_R_MALLOC_FAILURE);
     return 0;
   }
 
   uint32_t *out_unpacked =
-      (uint32_t *)OPENSSL_malloc(LWE_N_BAR * LWE_N * sizeof(uint32_t));
+      (uint32_t *)OPENSSL_malloc(LWE_N_BAR * LWE_N * sizeof(int32_t));
   if (out_unpacked == NULL) {
-    LWEKEXerr(LWEKEX_F_KEY_GEN_SERVER, ERR_R_MALLOC_FAILURE);
+    LWEKEXerr(LWEKEX_F_LWE_KEY_GEN_SERVER, ERR_R_MALLOC_FAILURE);
     return 0;
   }
 
@@ -291,7 +149,7 @@ int lwe_key_gen_client(unsigned char *out, const uint32_t *a_transpose,
   uint32_t *out_unpacked =
       (uint32_t *)OPENSSL_malloc(LWE_N_BAR * LWE_N * sizeof(uint32_t));
   if (out_unpacked == NULL) {
-    LWEKEXerr(LWEKEX_F_KEY_GEN_CLIENT, ERR_R_MALLOC_FAILURE);
+    LWEKEXerr(LWEKEX_F_LWE_KEY_GEN_CLIENT, ERR_R_MALLOC_FAILURE);
     return 0;
   }
 
@@ -393,14 +251,14 @@ int lwe_add_unif_noise(uint32_t *b, const size_t blen,
   size_t packed_len = LWE_DIV_ROUNDUP(blen * lsb, 8);
   unsigned char *noise_packed = (unsigned char *)OPENSSL_malloc(packed_len);
   if (noise_packed == NULL) {
-    LWEKEXerr(LWEKEX_F_ADD_UNIF_NOISE, ERR_R_MALLOC_FAILURE);
+    LWEKEXerr(LWEKEX_F_LWE_ADD_UNIF_NOISE, ERR_R_MALLOC_FAILURE);
     return 0;
   }
 
   uint32_t *noise_unpacked =
       (uint32_t *)OPENSSL_malloc(blen * sizeof(uint32_t));
   if (noise_unpacked == NULL) {
-    LWEKEXerr(LWEKEX_F_ADD_UNIF_NOISE, ERR_R_MALLOC_FAILURE);
+    LWEKEXerr(LWEKEX_F_LWE_ADD_UNIF_NOISE, ERR_R_MALLOC_FAILURE);
     return 0;
   }
 
