@@ -146,7 +146,10 @@ void ERR_load_LWEKEX_strings(void);
 #define LWEKEX_F_LWEKEX_				 107
 #define LWEKEX_F_LWEKEX_COMPUTE_KEY_ALICE		 108
 #define LWEKEX_F_LWEKEX_COMPUTE_KEY_BOB			 109
+#define LWEKEX_F_LWE_ADD_UNIF_NOISE			 125
 #define LWEKEX_F_LWE_CTX_NEW				 114
+#define LWEKEX_F_LWE_KEY_GEN_CLIENT			 126
+#define LWEKEX_F_LWE_KEY_GEN_SERVER			 127
 #define LWEKEX_F_LWE_PAIR_COPY				 115
 #define LWEKEX_F_LWE_PAIR_GENERATE_KEY			 119
 #define LWEKEX_F_LWE_PAIR_NEW				 102
@@ -154,6 +157,8 @@ void ERR_load_LWEKEX_strings(void);
 #define LWEKEX_F_LWE_PUB_COPY				 116
 #define LWEKEX_F_LWE_PUB_NEW				 103
 #define LWEKEX_F_LWE_REC_NEW				 106
+#define LWEKEX_F_LWE_SAMPLE_N_ALIAS			 129
+#define LWEKEX_F_LWE_SAMPLE_N_ALIAS_CT			 130
 #define LWEKEX_F_O2I_LWE_PUB				 101
 #define LWEKEX_F_O2I_LWE_REC				 105
 #define LWEKEX_F_RANDOM32				 111
@@ -161,6 +166,7 @@ void ERR_load_LWEKEX_strings(void);
 #define LWEKEX_F_RANDOM8				 110
 #define LWEKEX_F_RANDOMBUFF				 117
 #define LWEKEX_F_RANDOM_VARS				 118
+#define LWEKEX_F_SAMPLE_N_ALIAS				 128
 
 /* Reason codes. */
 #define LWEKEX_R_INVALID_LENGTH				 102

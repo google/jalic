@@ -61,6 +61,8 @@
 
 #define LWE_DIV_ROUNDUP(x, y) (((x) + (y) - 1) / y)
 
+//#define LWE_Q 4294967296 // implicitly use Q == 2**32
+
 #define LWE_EXTRACTED_BITS 15 // Number of bits extracted from a ring element.
 
 #define LWE_N \
@@ -69,7 +71,7 @@
 
 #define LWE_N_BAR \
   3  // Number of vectors chosen by each of the parties. (The protocol is
-     // currenrly symmetric, LWE_M_HAT = LWE_N_HAT.)
+     // currently symmetric, LWE_M_HAT = LWE_N_HAT.)
 
 #define LWE_KEY_BITS \
   128  // The length of the resulting key in bits. Should be a
@@ -85,10 +87,6 @@
 
 #define LWE_REC_HINT_LENGTH LWE_DIV_ROUNDUP(LWE_N_BAR * LWE_N_BAR, 8)
 // Length (in bytes) of the reconciliation hint vector
-
-// It seems that nothing restricts the form of the modulus q, so we can stick to
-// 2^32, which means that we are using unsigned 32-bit integer.
-void lwe_sample_n(uint32_t *s, int n);
 
 void lwe_round2_ct(unsigned char *out, uint32_t *in);
 void lwe_round2(unsigned char *out, uint32_t *in);

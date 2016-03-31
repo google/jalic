@@ -64,15 +64,16 @@
 
 #include <stdint.h>
 
-#define SINGLE_SAMPLE single_sample_table
-#define SINGLE_SAMPLE_CT single_sample_table_ct
+// Choice of how strict is the requirement of constant time:
+//   0: no constraints
+//   1: run time is constant except for table access patterns that are not,
+//      may be vulnerable to cache-timing attacks
+//   2: run time is constant, and table access patterns are fixed too
+#define LWE_SAMPLE_CONST_TIME_LEVEL 0
 
-// table-based method
-static uint32_t single_sample_table(uint64_t *in);
-static uint32_t single_sample_table_ct(uint64_t *in);
-
-// sampling from the binomial
-static uint32_t single_sample_binomial(uint64_t *in);
-static uint32_t single_sample_binomial_ct(uint64_t *in);
+// Choice of noise generation routine
+#define LWE_SAMPLE_N lwe_sample_n_table  // table-based method
+// #define LWE_SAMPLE_N lwe_sample_n_binomial // samples from the binomial
+// #define LWE_SAMPLE_N lwe_sample_n_alias // applies the alias method
 
 #endif

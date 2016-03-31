@@ -60,38 +60,6 @@
 
 #include "lwe.h"
 #include "lwe_a.h"
-//#include "lwe_table.h"
-#include "lwe_noise.h"
-
-#define RANDOM192(c) \
-  c[0] = RANDOM64;   \
-  c[1] = RANDOM64;   \
-  c[2] = RANDOM64;
-
-#define CONST_TIME_TERNARY_IF(COND, V1, V2) ((COND) * (V1) + (1 - (COND)) * (V2))
-
-void lwe_sample_n(uint32_t *s, int n) {
-  RANDOM_VARS;
-  int k, index = 0;
-  int number_of_batches = (n + 63) / 64;  // ceil(n / 64)
-  for (k = 0; k < number_of_batches; k++) {
-    uint64_t r = RANDOM64;
-    uint64_t bound = index + 64 < n ? index + 64: n; // min(index + 64, n)
-    for (; index < bound; index++) {
-      uint64_t rnd[3];
-      RANDOM192(rnd);
-#if CONSTANT_TIME
-      uint32_t sample = SINGLE_SAMPLE_CT(rnd);
-      s[index] = CONST_TIME_TERNARY_IF(r & 1, sample, -sample);
-#else
-      s[index] = SINGLE_SAMPLE(rnd);
-      if (r & 1)
-        s[index] = -s[index];
-#endif
-      r >>= 1;
-    }
-  }
-}
 
 // [.]_2
 void lwe_round2(unsigned char *out, uint32_t *in) {
@@ -131,16 +99,16 @@ int lwe_key_gen_server(unsigned char *out, const uint32_t *a, const uint32_t *s,
   size_t i, j, k, index = 0;
 
   uint32_t *s_transpose =
-      (uint32_t *)OPENSSL_malloc(LWE_N_BAR * LWE_N * sizeof(uint32_t));
+      (uint32_t *)OPENSSL_malloc(LWE_N_BAR * LWE_N * sizeof(int32_t));
   if (s_transpose == NULL) {
-    LWEKEXerr(LWEKEX_F_KEY_GEN_SERVER, ERR_R_MALLOC_FAILURE);
+    LWEKEXerr(LWEKEX_F_LWE_KEY_GEN_SERVER, ERR_R_MALLOC_FAILURE);
     return 0;
   }
 
   uint32_t *out_unpacked =
-      (uint32_t *)OPENSSL_malloc(LWE_N_BAR * LWE_N * sizeof(uint32_t));
+      (uint32_t *)OPENSSL_malloc(LWE_N_BAR * LWE_N * sizeof(int32_t));
   if (out_unpacked == NULL) {
-    LWEKEXerr(LWEKEX_F_KEY_GEN_SERVER, ERR_R_MALLOC_FAILURE);
+    LWEKEXerr(LWEKEX_F_LWE_KEY_GEN_SERVER, ERR_R_MALLOC_FAILURE);
     return 0;
   }
 
@@ -181,7 +149,7 @@ int lwe_key_gen_client(unsigned char *out, const uint32_t *a_transpose,
   uint32_t *out_unpacked =
       (uint32_t *)OPENSSL_malloc(LWE_N_BAR * LWE_N * sizeof(uint32_t));
   if (out_unpacked == NULL) {
-    LWEKEXerr(LWEKEX_F_KEY_GEN_CLIENT, ERR_R_MALLOC_FAILURE);
+    LWEKEXerr(LWEKEX_F_LWE_KEY_GEN_CLIENT, ERR_R_MALLOC_FAILURE);
     return 0;
   }
 
@@ -283,14 +251,14 @@ int lwe_add_unif_noise(uint32_t *b, const size_t blen,
   size_t packed_len = LWE_DIV_ROUNDUP(blen * lsb, 8);
   unsigned char *noise_packed = (unsigned char *)OPENSSL_malloc(packed_len);
   if (noise_packed == NULL) {
-    LWEKEXerr(LWEKEX_F_ADD_UNIF_NOISE, ERR_R_MALLOC_FAILURE);
+    LWEKEXerr(LWEKEX_F_LWE_ADD_UNIF_NOISE, ERR_R_MALLOC_FAILURE);
     return 0;
   }
 
   uint32_t *noise_unpacked =
       (uint32_t *)OPENSSL_malloc(blen * sizeof(uint32_t));
   if (noise_unpacked == NULL) {
-    LWEKEXerr(LWEKEX_F_ADD_UNIF_NOISE, ERR_R_MALLOC_FAILURE);
+    LWEKEXerr(LWEKEX_F_LWE_ADD_UNIF_NOISE, ERR_R_MALLOC_FAILURE);
     return 0;
   }
 

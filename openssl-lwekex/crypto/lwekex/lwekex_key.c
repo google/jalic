@@ -74,8 +74,7 @@
 #define RANDOM_VARS                                                        \
   AES_KEY aes_key;                                                         \
   unsigned char aes_key_bytes[16];                                         \
-  if (RAND_bytes(aes_key_bytes, sizeof(aes_key_bytes)) != 1)               \
-    LWEKEXerr(LWEKEX_F_RANDOM_VARS, LWEKEX_R_RANDOM_FAILED);               \
+  RAND_bytes(aes_key_bytes, sizeof(aes_key_bytes));                        \
   AES_set_encrypt_key(aes_key_bytes, sizeof(aes_key_bytes) * 8, &aes_key); \
   unsigned char aes_ivec[AES_BLOCK_SIZE];                                  \
   memset(aes_ivec, 0, AES_BLOCK_SIZE);                                     \
@@ -481,7 +480,7 @@ void LWE_REC_free(LWE_REC *r) {
 int LWE_PAIR_generate_key(LWE_PAIR *key, LWE_CTX *ctx, char isForServer) {
   int ok = 0;
 
-  int32_t *e = NULL;
+  uint32_t *e = NULL;
 
   key->pub = LWE_PUB_new();
   if (key->pub == NULL) {
@@ -493,14 +492,14 @@ int LWE_PAIR_generate_key(LWE_PAIR *key, LWE_CTX *ctx, char isForServer) {
     goto err;
   }
 
-  e = (int32_t *)OPENSSL_malloc(LWE_N * LWE_N_BAR * sizeof(int32_t));
+  e = (uint32_t *)OPENSSL_malloc(LWE_N * LWE_N_BAR * sizeof(uint32_t));
   if (e == NULL) {
     LWEKEXerr(LWEKEX_F_LWE_PAIR_GENERATE_KEY, ERR_R_MALLOC_FAILURE);
     goto err;
   }
 
-  lwe_sample_n(key->s, LWE_N * LWE_N_BAR);
-  lwe_sample_n(e, LWE_N * LWE_N_BAR);
+  LWE_SAMPLE_N(key->s, LWE_N * LWE_N_BAR);
+  LWE_SAMPLE_N(e, LWE_N * LWE_N_BAR);
 
   // find min/max S
   int32_t signed_s_min = key->s[0], signed_s_max = key->s[0];
@@ -658,9 +657,8 @@ int LWE_PAIR_has_privatekey(LWE_PAIR *pair) { return (pair->s != NULL); }
 /* For debug purposes only. No reasons to expose. */
 // uint32_t* LWE_PAIR_get_privatekey(LWE_PAIR *pair) { return pair->s; }
 
-/* Compute shared secret values */
-int LWEKEX_compute_key_alice(
-    void *out, size_t outlen, const LWE_PUB *peer_pub_key,
+/* Cmpute shared secret values */
+int LWEKEX_compute_key_alice(void *out, size_t outlen, const LWE_PUB *peer_pub_key,
     const LWE_REC *peer_reconciliation, const LWE_PAIR *priv_pub_key,
     void *(*KDF)(const void *in, size_t inlen, void *out, size_t *outlen),
     LWE_CTX *ctx, uint32_t *w) {
@@ -677,7 +675,7 @@ int LWEKEX_compute_key_alice(
       (uint32_t *)OPENSSL_malloc(LWE_N * LWE_N_BAR * sizeof(uint32_t));
 
   if (w == NULL || ka == NULL || unpacked_b == NULL) {
-    LWEKEXerr(LWEKEX_F_COMPUTE_KEY_ALICE, ERR_R_MALLOC_FAILURE);
+    LWEKEXerr(LWEKEX_F_LWEKEX_COMPUTE_KEY_ALICE, ERR_R_MALLOC_FAILURE);
     goto err;
   }
 
@@ -768,11 +766,11 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation,
                LWE_N_BAR * LWE_N_BAR);  // DEBUG LINE
 
   if (v == NULL || kb == NULL || unpacked_b == NULL || eprimeprime == NULL) {
-    LWEKEXerr(LWEKEX_F_COMPUTE_KEY_BOB, ERR_R_MALLOC_FAILURE);
+    LWEKEXerr(LWEKEX_F_LWEKEX_COMPUTE_KEY_BOB, ERR_R_MALLOC_FAILURE);
     goto err;
   }
 
-  lwe_sample_n(eprimeprime, LWE_N_BAR * LWE_N_BAR);
+  LWE_SAMPLE_N(eprimeprime, LWE_N_BAR * LWE_N_BAR);
 
   debug_printf("%d %d ... %d\n", eprimeprime[0], eprimeprime[1],
                eprimeprime[LWE_N_BAR * LWE_N_BAR - 1]);
@@ -786,7 +784,7 @@ int LWEKEX_compute_key_bob(void *out, size_t outlen, LWE_REC *reconciliation,
 
   debug_printf("  Adding uniform noise to B\n");
   if(!lwe_add_unif_noise(unpacked_b, LWE_N * LWE_N_BAR, LWE_TRUNCATED_BITS)) {
-    LWEKEXerr(LWEKEX_F_COMPUTE_KEY_BOB, LWEKEX_R_UNIFNOISE_FAILURE);
+    LWEKEXerr(LWEKEX_F_LWEKEX_COMPUTE_KEY_BOB, LWEKEX_R_UNIFNOISE_FAILURE);
     goto err;
   }
   
