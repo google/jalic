@@ -237,7 +237,6 @@ void lwe_sample_n_binomial32(uint32_t *s, const size_t n) {
 /****************
  * ALIAS METHOD *
  ****************/
-
 /* Good appoximation to the rounded Gaussian with sigma^2 = 6. The Renyi
  * divergence of order 75 between the two is ~1.0008927.
  * The range of the distribution is [0..8]. Requires 4 bits to sample the bin
@@ -325,12 +324,12 @@ void lwe_sample_n_alias(uint32_t *s, size_t n) {
     uint8_t b1, b2;
     size_t j;
     for (j = 0; j < ALIAS_METHOD_BINS; j++) {
-      b1 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS_S8[j] < threshold1,
-                                 ALIAS_METHOD_ALIASES_S8[j], j);
+      b1 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS[j] < threshold1,
+                                 ALIAS_METHOD_ALIASES[j], j);
       sample1 = CONST_TIME_TERNARY_IF(j == bin1, b1, sample1);
 
-      b2 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS_S8[j] < threshold2,
-                                 ALIAS_METHOD_ALIASES_S8[j], j);
+      b2 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS[j] < threshold2,
+                                 ALIAS_METHOD_ALIASES[j], j);
       sample2 = CONST_TIME_TERNARY_IF(j == bin2, b2, sample2);
     }
 
@@ -339,17 +338,17 @@ void lwe_sample_n_alias(uint32_t *s, size_t n) {
     /* Constant time except that table lookups have variable access
      * pattern. (Tables most likely fit into a single cacheline.)
      */
-    sample1 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS_S8[bin1] < threshold1,
-                                    ALIAS_METHOD_ALIASES_S8[bin1], bin1);
-    sample2 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS_S8[bin2] < threshold2,
-                                    ALIAS_METHOD_ALIASES_S8[bin2], bin2);
+    sample1 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS[bin1] < threshold1,
+                                    ALIAS_METHOD_ALIASES[bin1], bin1);
+    sample2 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS[bin2] < threshold2,
+                                    ALIAS_METHOD_ALIASES[bin2], bin2);
 #else
     // No expectation of constant time!
-    sample1 = ALIAS_METHOD_THRESHOLDS_S8[bin1] < threshold1
-                  ? ALIAS_METHOD_ALIASES_S8[bin1]
+    sample1 = ALIAS_METHOD_THRESHOLDS[bin1] < threshold1
+                  ? ALIAS_METHOD_ALIASES[bin1]
                   : bin1;
-    sample2 = ALIAS_METHOD_THRESHOLDS_S8[bin2] < threshold2
-                  ? ALIAS_METHOD_ALIASES_S8[bin2]
+    sample2 = ALIAS_METHOD_THRESHOLDS[bin2] < threshold2
+                  ? ALIAS_METHOD_ALIASES[bin2]
                   : bin2;
 #endif
 
