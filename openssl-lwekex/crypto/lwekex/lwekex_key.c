@@ -81,27 +81,23 @@
   unsigned char aes_ecount_buf[AES_BLOCK_SIZE];                            \
   memset(aes_ecount_buf, 0, AES_BLOCK_SIZE);                               \
   unsigned int aes_num = 0;                                                \
-  unsigned char aes_in[AES_BLOCK_SIZE];                                    \
-  memset(aes_in, 0, AES_BLOCK_SIZE);
 
 #define RANDOM8                                                            \
-  ((uint8_t)lwe_randomplease(&aes_key, aes_ivec, aes_ecount_buf, &aes_num, \
-                             aes_in))
+  ((uint8_t)lwe_randomplease(&aes_key, aes_ivec, aes_ecount_buf, &aes_num))
 #define RANDOM32                                                            \
-  ((uint32_t)lwe_randomplease(&aes_key, aes_ivec, aes_ecount_buf, &aes_num, \
-                              aes_in))
+  ((uint32_t)lwe_randomplease(&aes_key, aes_ivec, aes_ecount_buf, &aes_num))
 #define RANDOM64                                                            \
-  ((uint64_t)lwe_randomplease(&aes_key, aes_ivec, aes_ecount_buf, &aes_num, \
-                              aes_in))
+  ((uint64_t)lwe_randomplease(&aes_key, aes_ivec, aes_ecount_buf, &aes_num))
+
 #define RANDOMBUFF(buff, length)                                              \
   (lwe_randombuff(buff, length, &aes_key, aes_ivec, aes_ecount_buf, &aes_num, \
-                  aes_in))
+                  buff)) // buff is effectively encrypted by AES128-CTR
 
 void lwe_randombuff(unsigned char *out, size_t length, AES_KEY *aes_key,
                     unsigned char aes_ivec[AES_BLOCK_SIZE],
                     unsigned char aes_ecount_buf[AES_BLOCK_SIZE],
                     unsigned int *aes_num,
-                    unsigned char aes_in[AES_BLOCK_SIZE]) {
+                    unsigned char *aes_in) {
   AES_ctr128_encrypt(aes_in, out, length, aes_key, aes_ivec, aes_ecount_buf,
                      aes_num);
 }
@@ -109,9 +105,9 @@ void lwe_randombuff(unsigned char *out, size_t length, AES_KEY *aes_key,
 uint64_t lwe_randomplease(AES_KEY *aes_key,
                           unsigned char aes_ivec[AES_BLOCK_SIZE],
                           unsigned char aes_ecount_buf[AES_BLOCK_SIZE],
-                          unsigned int *aes_num,
-                          unsigned char aes_in[AES_BLOCK_SIZE]) {
+                          unsigned int *aes_num) {
   uint64_t out;
+  unsigned char aes_in[AES_BLOCK_SIZE]; // aes_in is encrypted by AES128-CTR
   lwe_randombuff((unsigned char *)&out, 8, aes_key, aes_ivec, aes_ecount_buf,
                  aes_num, aes_in);
   return out;

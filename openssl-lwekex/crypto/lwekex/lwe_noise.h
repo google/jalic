@@ -69,11 +69,11 @@
 //   1: run time is constant except for table access patterns that are not,
 //      may be vulnerable to cache-timing attacks
 //   2: run time is constant, and table access patterns are fixed too
-#define LWE_SAMPLE_CONST_TIME_LEVEL 0
+#define LWE_SAMPLE_CONST_TIME_LEVEL 1
 
 // Choice of noise generation routine
-#define LWE_SAMPLE_N lwe_sample_n_table  // table-based method
-// #define LWE_SAMPLE_N lwe_sample_n_binomial // samples from the binomial
-// #define LWE_SAMPLE_N lwe_sample_n_alias // applies the alias method
+// #define LWE_SAMPLE_N lwe_sample_n_table  // table-based method
+//#define LWE_SAMPLE_N lwe_sample_n_binomial32 // samples from the binomial
+#define LWE_SAMPLE_N lwe_sample_n_alias // applies the alias method
 
 #endif
