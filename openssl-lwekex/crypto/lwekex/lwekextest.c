@@ -198,7 +198,6 @@ static int test_sampling(BIO *out) {
         goto err;
       }
       counts[s[j] + LWE_MAX_NOISE]++;
-      //BIO_printf(out, "%d\n", s[j]);
     }
   }
 

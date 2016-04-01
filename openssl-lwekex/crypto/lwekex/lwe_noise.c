@@ -157,51 +157,108 @@ void lwe_sample_n_table(uint32_t *s, const size_t n) {
  * BINOMIAL APPROXIMATION *
  **************************/
 
-void lwe_sample_n_binomial(uint32_t *s, const size_t n) {
+uint64_t count_bits8(const uint64_t in) {
+  // Count bits set in each byte of in using the "SWAR" algorithm.
+  uint64_t r;
+  r = (in & 0x5555555555555555) + ((in >> 1) & 0x5555555555555555);
+  r = (r & 0x3333333333333333) + ((r >> 2) & 0x3333333333333333);
+  r = (r + (r >> 4)) & 0x0f0f0f0f0f0f0f0f;
+  return r;
+}
+
+void lwe_sample_n_binomial24(uint32_t *s, const size_t n) {
   // Fills vector s with n samples from the noise distribution. The noise
   // distribution is shifted binomial B(24, .5) - 12.
   // Runs in constant time. Can be sped up with compiler intrinsics.
 
+  size_t rndlen = 3 * n;  // 24 bits of uniform randomness per output element
+  if (rndlen % 8 != 0)
+    rndlen += 8 - (rndlen % 8);  // force rndlen be divisible by 8
+
+  uint64_t *rnd = (uint64_t *)OPENSSL_malloc(rndlen);
+  if (rnd == NULL) {
+    LWEKEXerr(LWEKEX_F_LWE_SAMPLE_N_BINOMIAL24, ERR_R_MALLOC_FAILURE);
+    return;
+  }
+
   RANDOM_VARS;
+  RANDOMBUFF((unsigned char *)rnd, rndlen);
+
+  uint64_t *ptr_rnd =
+      rnd;  // processes 3 rnd entries for each 8 output elements
+
   size_t i, j;
   for (i = 0; i < n; i += 8) {
-    uint64_t rnd[3];
-    RANDOMBUFF((unsigned char *)rnd, sizeof(rnd));
-
-    uint64_t sum = 0;
-    for (j = 0; j < 8; j++) {
-      sum += rnd[0] & 0x0101010101010101;  // lsb of each of the 8 bytes.
-      sum += rnd[1] & 0x0101010101010101;
-      sum += rnd[2] & 0x0101010101010101;
-
-      rnd[0] >>= 1;
-      rnd[1] >>= 1;
-      rnd[2] >>= 1;
-    }
+    uint64_t sum = count_bits8(ptr_rnd[0]) + count_bits8(ptr_rnd[1]) +
+                   count_bits8(ptr_rnd[2]);
     // each byte of sum holds the count of the total number of bits set to 1 in
     // the corresponding bytes of rnd[0], rnd[1], rnd[2].
 
     size_t bound = i + 8 < n ? 8 : n - i;  // min(8, n - i)
-
     for (j = 0; j < bound; j++)
       s[i + j] = (uint32_t)((sum >> (j * 8)) & 0xFF) - 12;
+
+    ptr_rnd += 3;
   }
+  OPENSSL_cleanse(rnd, rndlen);
+  OPENSSL_free(rnd);
+}
+
+uint32_t count_bits32(const uint32_t in) {
+  // Count bits set to 1 using the "SWAR" algorithm.
+  uint32_t r;
+  r = (in & 0x55555555) + ((in >> 1) & 0x55555555);
+  r = (r & 0x33333333) + ((r >> 2) & 0x33333333);
+  r = (r + (r >> 4)) & 0x0f0f0f0f;
+  r = (r + (r >> 8)) & 0x00ff00ff;
+  r = (r + (r >> 16)) & 0x0000ffff;
+  return r;
+}
+
+void lwe_sample_n_binomial32(uint32_t *s, const size_t n) {
+  // Fills vector s with n samples from the noise distribution. The noise
+  // distribution is shifted binomial B(32, .5) - 16.
+  // Runs in constant time. Can be sped up with compiler intrinsics.
+
+  size_t rndlen = 4 * n;  // 32 bits of uniform randomness per output element
+  uint32_t *rnd = (uint32_t *)OPENSSL_malloc(rndlen);
+  if (rnd == NULL) {
+    LWEKEXerr(LWEKEX_F_LWE_SAMPLE_N_BINOMIAL32, ERR_R_MALLOC_FAILURE);
+    return;
+  }
+  RANDOM_VARS;
+  RANDOMBUFF((unsigned char *)rnd, rndlen);
+  size_t i;
+  for (i = 0; i < n; i++) s[i] = count_bits32(rnd[i]) - 16;
+  OPENSSL_cleanse(rnd, rndlen);
+  OPENSSL_free(rnd);
 }
 
 /****************
  * ALIAS METHOD *
  ****************/
 
-/* Good appoximation to the discrete Gaussian with sigma^2 = 6. The Renyi
+/* Good appoximation to the rounded Gaussian with sigma^2 = 6. The Renyi
  * divergence of order 75 between the two is ~1.0008927.
  * The range of the distribution is [0..8]. Requires 4 bits to sample the bin
  * and 7 bits to sample the threshold.
  */
 static const uint8_t ALIAS_METHOD_BINS = 16;
-static const uint8_t ALIAS_METHOD_THRESHOLDS[] = {
+
+static const uint8_t ALIAS_METHOD_THRESHOLDS_S6[] = {
     76, 128, 105, 60, 110, 85, 34, 12, 3, 0, 0, 0, 0, 0, 0, 0};
-static const uint8_t ALIAS_METHOD_ALIASES[] = {1, 1, 1, 4, 1, 1, 1, 2,
-                                               1, 2, 1, 0, 3, 2, 0, 3};
+static const uint8_t ALIAS_METHOD_ALIASES_S6[] = {1, 1, 1, 4, 1, 1, 1, 2,
+                                                  1, 2, 1, 0, 3, 2, 0, 3};
+
+/* Good appoximation to the rounded Gaussian with sigma^2 = 8. The Renyi
+ * divergence of order 50 between the two is ~1.000565.
+ * The range of the distribution is [0..10]. Requires 4 bits to sample the bin
+ * and 7 bits to sample the threshold.
+ */
+const uint8_t ALIAS_METHOD_THRESHOLDS_S8[16] = {
+    105, 116, 77, 128, 74, 122, 62, 28, 11, 4, 1, 0, 0, 0, 0, 0};
+const uint8_t ALIAS_METHOD_ALIASES_S8[16] = {3, 4, 3, 3, 0, 1, 1, 1,
+                                             2, 1, 2, 3, 0, 1, 2, 4};
 
 #if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
 #error "Code assumes little endianness"
@@ -268,12 +325,12 @@ void lwe_sample_n_alias(uint32_t *s, size_t n) {
     uint8_t b1, b2;
     size_t j;
     for (j = 0; j < ALIAS_METHOD_BINS; j++) {
-      b1 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS[j] < threshold1,
-                                 ALIAS_METHOD_ALIASES[j], j);
+      b1 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS_S8[j] < threshold1,
+                                 ALIAS_METHOD_ALIASES_S8[j], j);
       sample1 = CONST_TIME_TERNARY_IF(j == bin1, b1, sample1);
 
-      b2 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS[j] < threshold2,
-                                 ALIAS_METHOD_ALIASES[j], j);
+      b2 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS_S8[j] < threshold2,
+                                 ALIAS_METHOD_ALIASES_S8[j], j);
       sample2 = CONST_TIME_TERNARY_IF(j == bin2, b2, sample2);
     }
 
@@ -282,17 +339,17 @@ void lwe_sample_n_alias(uint32_t *s, size_t n) {
     /* Constant time except that table lookups have variable access
      * pattern. (Tables most likely fit into a single cacheline.)
      */
-    sample1 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS[bin1] < threshold1,
-                                    ALIAS_METHOD_ALIASES[bin1], bin1);
-    sample2 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS[bin2] < threshold2,
-                                    ALIAS_METHOD_ALIASES[bin2], bin2);
+    sample1 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS_S8[bin1] < threshold1,
+                                    ALIAS_METHOD_ALIASES_S8[bin1], bin1);
+    sample2 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS_S8[bin2] < threshold2,
+                                    ALIAS_METHOD_ALIASES_S8[bin2], bin2);
 #else
     // No expectation of constant time!
-    sample1 = ALIAS_METHOD_THRESHOLDS[bin1] < threshold1
-                  ? ALIAS_METHOD_ALIASES[bin1]
+    sample1 = ALIAS_METHOD_THRESHOLDS_S8[bin1] < threshold1
+                  ? ALIAS_METHOD_ALIASES_S8[bin1]
                   : bin1;
-    sample2 = ALIAS_METHOD_THRESHOLDS[bin2] < threshold2
-                  ? ALIAS_METHOD_ALIASES[bin2]
+    sample2 = ALIAS_METHOD_THRESHOLDS_S8[bin2] < threshold2
+                  ? ALIAS_METHOD_ALIASES_S8[bin2]
                   : bin2;
 #endif
 
