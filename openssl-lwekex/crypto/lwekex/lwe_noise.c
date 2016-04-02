@@ -204,7 +204,10 @@ void lwe_sample_n_binomial24(uint32_t *s, const size_t n) {
 }
 
 uint32_t count_bits32(uint32_t x) {
-  // Count bits set to 1 using the "SWAR" algorithm.
+  /* Count bits set to 1 using the "SWAR" algorithm.
+   * Can be replaced with __builtin_popcount(x) that resolves either to a
+   * a hardware instruction or a library implementation.
+   */
   x -= (x >> 1) & 0x55555555;
   x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
   x = (x + (x >> 4)) & 0x0f0f0f0f;
