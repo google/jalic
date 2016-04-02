@@ -74,10 +74,10 @@
 // Choice of noise generation routine
 // #define LWE_SAMPLE_N lwe_sample_n_table  // table-based method
 
-//#define LWE_SAMPLE_N lwe_sample_n_binomial24 // samples from the binomial
+#define LWE_SAMPLE_N lwe_sample_n_binomial24 // samples from the binomial
 //#define LWE_SAMPLE_N lwe_sample_n_binomial32 // samples from the binomial
 
-#define LWE_SAMPLE_N lwe_sample_n_alias // applies the alias method
+// #define LWE_SAMPLE_N lwe_sample_n_alias // applies the alias method
 
 // Choice of the tables for the alias method
 #define ALIAS_METHOD_THRESHOLDS ALIAS_METHOD_THRESHOLDS_S6
