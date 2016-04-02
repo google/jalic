@@ -157,13 +157,12 @@ void lwe_sample_n_table(uint32_t *s, const size_t n) {
  * BINOMIAL APPROXIMATION *
  **************************/
 
-uint64_t count_bits8(const uint64_t in) {
-  // Count bits set in each byte of in using the "SWAR" algorithm.
-  uint64_t r;
-  r = (in & 0x5555555555555555) + ((in >> 1) & 0x5555555555555555);
-  r = (r & 0x3333333333333333) + ((r >> 2) & 0x3333333333333333);
-  r = (r + (r >> 4)) & 0x0f0f0f0f0f0f0f0f;
-  return r;
+uint64_t count_bits8(uint64_t x) {
+  // Count bits set in each byte of x using the "SWAR" algorithm.
+  x -= (x >> 1) & 0x5555555555555555;
+  x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);
+  x = (x + (x >> 4)) & 0x0f0f0f0f0f0f0f0f;
+  return x;
 }
 
 void lwe_sample_n_binomial24(uint32_t *s, const size_t n) {
@@ -204,15 +203,14 @@ void lwe_sample_n_binomial24(uint32_t *s, const size_t n) {
   OPENSSL_free(rnd);
 }
 
-uint32_t count_bits32(const uint32_t in) {
+uint32_t count_bits32(uint32_t x) {
   // Count bits set to 1 using the "SWAR" algorithm.
-  uint32_t r;
-  r = (in & 0x55555555) + ((in >> 1) & 0x55555555);
-  r = (r & 0x33333333) + ((r >> 2) & 0x33333333);
-  r = (r + (r >> 4)) & 0x0f0f0f0f;
-  r = (r + (r >> 8)) & 0x00ff00ff;
-  r = (r + (r >> 16)) & 0x0000ffff;
-  return r;
+  x -= (x >> 1) & 0x55555555;
+  x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+  x = (x + (x >> 4)) & 0x0f0f0f0f;
+  x += x >> 8;
+  x += x >> 16;
+  return x & 0x1F;
 }
 
 void lwe_sample_n_binomial32(uint32_t *s, const size_t n) {

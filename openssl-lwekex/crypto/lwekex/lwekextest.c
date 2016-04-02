@@ -72,8 +72,8 @@
 #include <openssl/sha.h>
 
 #include "../crypto/lwekex/lwe.h"
-#include "../crypto/lwekex/lwe_table.h"
 #include "../crypto/lwekex/lwe_noise.h"
+#include "../crypto/lwekex/lwe_table.h"
 
 #ifdef OPENSSL_NO_LWEKEX
 int main(int argc, char *argv[]) {
@@ -231,24 +231,26 @@ static int test_sampling(BIO *out) {
     chi_squared += p;
     df++;
 
-    BIO_printf(out, "count[%4i] = %d, expectation = %f\n", i - LWE_MAX_NOISE,
-               counts[i], expect);
-  }
+    if(counts[i] != 0)
+      BIO_printf(out, "count[%4i] = %d\n", i - LWE_MAX_NOISE, counts[i]);
+  // BIO_printf(out, "count[%4i] = %d, expectation = %f\n", i - LWE_MAX_NOISE,
+  //           counts[i], expect);
+}
 
-  BIO_printf(out, "The chi-squared statistic = %f (df = %d)\n", chi_squared,
-             df);
+// BIO_printf(out, "The chi-squared statistic = %f (df = %d)\n", chi_squared,
+//           df);
 
-//  if (chi_squared > 2 * df)  // terrible fit! May abort here, but go on with other tests.
+//  if (chi_squared > 2 * df)  // terrible fit! May abort here, but go on with
+//  other tests.
 //    goto err;
 
-  BIO_printf(out, "Checked.\n");
-  ret = 1;
+BIO_printf(out, "Checked.\n");
+ret = 1;
 
-err:
-  OPENSSL_free(s);
-  OPENSSL_free(counts);
+err : OPENSSL_free(s);
+OPENSSL_free(counts);
 
-  return ret;
+return ret;
 }
 
 static int test_lwekex(BIO *out, int single) {
@@ -475,7 +477,8 @@ int main(int argc, char *argv[]) {
       }
     }
   } else {
-    BIO_printf(out, "Error: argument must be \"cont\" for invoking \
+    BIO_printf(out,
+               "Error: argument must be \"cont\" for invoking \
 continuously run test.\n");
   }
 
