@@ -260,18 +260,27 @@ const uint8_t ALIAS_METHOD_THRESHOLDS_S8[16] = {
 const uint8_t ALIAS_METHOD_ALIASES_S8[16] = {3, 4, 3, 3, 0, 1, 1, 1,
                                              2, 1, 2, 3, 0, 1, 2, 4};
 
-#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
-#error "Code assumes little endianness"
+#if (ALIAS_METHOD_THRESHOLDS & 0x0F) != 0 || (ALIAS_METHOD_ALIASES & 0x0F) != 0
+#error "Static constants are not aligned. A potential cache-timing attack."
 #endif
 
-#if (ALIAS_METHOD_THRESHOLDS & 0x0F) != 0 || (ALIAS_METHOD_ALIASES & 0x0F) != 0
-#error "Static constants are not aligned. A potetial cache-timing attack."
-#endif
+typedef struct {
+  /* The struct used in the sampling process; can be replaced with bit
+   * manipulation routines. Important: its size must be exactly 3 bytes
+   * (guaranteed by the packed attribute). Not important: the exact
+   * ordering of bit-fields.
+   */
+  uint8_t threshold1 : 7;
+  uint8_t bin1 : 4;
+  uint8_t sign1 : 1;
+  uint8_t threshold2 : 7;
+  uint8_t bin2 : 4;
+  uint8_t sign2 : 1;
+} __attribute__((__packed__)) three_bytes_packed;
 
 void lwe_sample_n_alias(uint32_t *s, size_t n) {
   /* Fills vector s with n samples from the noise distribution. The noise
    * distribution is specified by its alias method structures.
-   * The number of output samples n must be even.
    */
 
   size_t rndlen = 3 * n / 2;  // 12 bits of unif randomness per output element
@@ -288,12 +297,11 @@ void lwe_sample_n_alias(uint32_t *s, size_t n) {
   RANDOMBUFF((unsigned char *)rnd, rndlen);
 
   size_t i;
+  OPENSSL_assert(sizeof(three_bytes_packed) == 3);
 
   for (i = 0; i < n; i += 2) {  // two output elements at a time
-    uint32_t u = *(uint32_t *)(rnd + 3 * i / 2);
-
-    uint8_t bin1, threshold1, sample1;
-    uint8_t bin2, threshold2, sample2;
+    uint8_t bin1, threshold1, sample1 = ALIAS_METHOD_BINS;
+    uint8_t bin2, threshold2, sample2 = ALIAS_METHOD_BINS;
     int8_t sign1, sign2;
 
     /* Use 24 bits of u to sample two noise values using the alias method as
@@ -302,13 +310,16 @@ void lwe_sample_n_alias(uint32_t *s, size_t n) {
      *    01234567 89012345 67890123
      *    aaaaaaab bbbcdddd dddeeeef
      * where:
-     *  bbbb    is used to select the bin for the first sample
-     *  aaaaaaa is used for the threshold of the first sample
+     *  bbbb    selects the bin for the first sample
+     *  aaaaaaa sets the threshold of the first sample
      *  c       is the sign of the first sample
-     *  eeee    is used to select the bin for the second sample
-     *  ddddddd is used for the threshold of the second sample
+     *  eeee    selects the bin for the second sample
+     *  ddddddd sets for the threshold of the second sample
      *  f       is the sign of the second sample
      */
+
+    /* Implementation based on bit manipulation
+    uint32_t u = *(uint32_t *)(rnd + 3 * i / 2);
 
     bin1 = (u >> 7) & 0xF;        // 4 bits
     threshold1 = u & 0x7F;        // 7 bits
@@ -317,6 +328,21 @@ void lwe_sample_n_alias(uint32_t *s, size_t n) {
     bin2 = (u >> 19) & 0xF;         // 4 bits
     threshold2 = (u >> 12) & 0x7F;  // 7 bits
     sign2 = ((u >> 22) & 2) - 1;    // = shift by 23, multiply by 2, substract 1
+    */
+
+    /* Implementation based on a bit-field structure:
+     *  - slightly more compact and readable;
+     *  - more compiler-dependent. In particular, __attribute__((packed))
+     *    is gcc-specific.
+     */
+    three_bytes_packed *ptr_packed = (three_bytes_packed *)(rnd + 3 * i / 2);
+    bin1 = ptr_packed->bin1;
+    threshold1 = ptr_packed->threshold1;
+    sign1 = 2 * ptr_packed->sign1 - 1;
+
+    bin2 = ptr_packed->bin2;
+    threshold2 = ptr_packed->threshold2;
+    sign2 = 2 * ptr_packed->sign2 - 1;
 
 #if LWE_SAMPLE_CONST_TIME_LEVEL >= 2
     /* Super-constant timing: the tables of thresholds and aliases are ingested
@@ -344,7 +370,7 @@ void lwe_sample_n_alias(uint32_t *s, size_t n) {
     sample2 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS[bin2] < threshold2,
                                     ALIAS_METHOD_ALIASES[bin2], bin2);
 #else
-    // No expectation of constant time!
+    // No expectation of constant timing!
     sample1 = ALIAS_METHOD_THRESHOLDS[bin1] < threshold1
                   ? ALIAS_METHOD_ALIASES[bin1]
                   : bin1;
