@@ -213,7 +213,7 @@ uint32_t count_bits32(uint32_t x) {
   x = (x + (x >> 4)) & 0x0f0f0f0f;
   x += x >> 8;
   x += x >> 16;
-  return x & 0x1F;
+  return x & 0x3F;  // Returned answer is <= 32 which is at most 6 bits long.
 }
 
 void lwe_sample_n_binomial32(uint32_t *s, const size_t n) {
