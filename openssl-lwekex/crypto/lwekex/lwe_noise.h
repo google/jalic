@@ -6,7 +6,7 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer. 
+ *    notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in
@@ -18,7 +18,8 @@
  *    "This product includes software developed by the OpenSSL Project
  *    for use in the OpenSSL Toolkit. (http://www.openssl.org/)"
  *
- * 4. The names "OpenSSL Toolkit" and "OpenSSL Project", and "Google" must not be used to
+ * 4. The names "OpenSSL Toolkit" and "OpenSSL Project", and "Google" must not
+ * be used to
  *    endorse or promote products derived from this software without
  *    prior written permission. For written permission, please contact
  *    openssl-core@openssl.org.
@@ -77,10 +78,23 @@
 //#define LWE_SAMPLE_N lwe_sample_n_binomial24 // samples from the binomial
 // #define LWE_SAMPLE_N lwe_sample_n_binomial32 // samples from the binomial
 
-#define LWE_SAMPLE_N lwe_sample_n_alias // applies the alias method
+#define LWE_SAMPLE_N lwe_sample_n_alias  // applies the alias method
 
-// Choice of the tables for the alias method
-#define ALIAS_METHOD_THRESHOLDS ALIAS_METHOD_THRESHOLDS_S6
-#define ALIAS_METHOD_ALIASES ALIAS_METHOD_ALIASES_S6
+// Choice of the tables for the alias method (used when
+// LWE_SAMPLE_CONST_TIME_LEVEL == 0 or 1)
+#define LWE_ALIAS_METHOD_THRESHOLDS ALIAS_METHOD_THRESHOLDS_S6
+#define LWE_ALIAS_METHOD_ALIASES ALIAS_METHOD_ALIASES_S6
+
+// Choice of the tables for the table method (used when
+// LWE_SAMPLE_CONST_TIME_LEVEL == 2), also used as the reference CDF by
+// lwekextest.
+#define LWE_CDF_TABLE CDF_S6
+#define LWE_CDF_TABLE_LENGTH CDF_LENGTH_S6
+
+extern const uint16_t LWE_CDF_TABLE[];
+extern const size_t LWE_CDF_TABLE_LENGTH;
+
+void lwe_sample_n_table(uint32_t *s, const size_t n);
+void lwe_sample_n_alias(uint32_t *s, const size_t n);
 
 #endif

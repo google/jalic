@@ -175,82 +175,114 @@ static int test_packing_unpacking(BIO *out) {
 static int test_sampling(BIO *out) {
   int ret = 0;
 
-  const uint32_t ROUNDS = 100;
+  const uint32_t ROUNDS = 1000;
 
   uint32_t *counts = NULL, *s = NULL;
-
-  counts =  // counts for [-LWE_MAX_NOISE...LWE_MAX_NOISE - 1]
-      (uint32_t *)OPENSSL_malloc(2 * LWE_MAX_NOISE * sizeof(uint32_t));
+  
+  uint32_t max_noise;
+  uint64_t cdf_scale;
+  
+  if(LWE_SAMPLE_N == lwe_sample_n_alias) {
+    max_noise = LWE_CDF_TABLE_LENGTH;
+    cdf_scale = LWE_CDF_TABLE[max_noise - 1];
+    BIO_printf(out, "Testing the alias method (CONST_TIME_LEVEL = %d, bins = %d, granularity = %f)\n", 
+               LWE_SAMPLE_CONST_TIME_LEVEL, max_noise, 1. / cdf_scale);
+    
+  } else if(LWE_SAMPLE_N == lwe_sample_n_table) {  
+    max_noise = LWE_MAX_NOISE;
+    cdf_scale = UINT64_MAX;
+    BIO_printf(out, "Testing the table method (CONST_TIME_LEVEL = %d, bins = %d)\n", 
+               LWE_SAMPLE_CONST_TIME_LEVEL, max_noise);   
+  }
+  
+  counts =  // counts for [-max_noise...max_noise - 1]
+      (uint32_t *)OPENSSL_malloc(2 * max_noise * sizeof(uint32_t));
 
   s = (uint32_t *)OPENSSL_malloc(LWE_N * LWE_N_BAR * sizeof(uint32_t));
 
   if ((counts == NULL) || (s == NULL)) goto err;
 
-  memset(counts, 0, sizeof(uint32_t) * 2 * LWE_MAX_NOISE);
+  memset(counts, 0, sizeof(uint32_t) * 2 * max_noise);
 
-  BIO_printf(out, "Checking distribution...\n");
+  BIO_printf(out, "Sampling from the distribution...\n");
   int i, j;
   for (i = 0; i < ROUNDS; i++) {
     LWE_SAMPLE_N(s, LWE_N * LWE_N_BAR);
     for (j = 0; j < LWE_N * LWE_N_BAR; j++) {
-      if (s[j] + LWE_MAX_NOISE >= 2 * LWE_MAX_NOISE) {
-        fprintf(stderr, "Element %d out of bounds\n", s[j]);
+      if (s[j] + max_noise >= 2 * max_noise) {
+        fprintf(stderr, "Element %d is out of bounds\n", s[j]);
         goto err;
       }
-      counts[s[j] + LWE_MAX_NOISE]++;
+      counts[s[j] + max_noise]++;
     }
   }
 
-  uint64_t total = ROUNDS * LWE_N * LWE_N_BAR;
-  double chi_squared = 0;
-  int df = 0;  // degrees of freedom
-
-  for (i = 1; i < 2 * LWE_MAX_NOISE; i++) {
-    int v = abs(i - LWE_MAX_NOISE);
-    double expect;
-    if (v > 0)
-      expect = .5 * (double)(lwe_table[v][2] - lwe_table[v - 1][2]) /
-               UINT64_MAX * total;
-    else
-      expect = (double)(lwe_table[v][2]) / UINT64_MAX * total;
-
-    if (expect == 0) {
-      if (counts[i] == 0)
-        continue;
-      else {
-        fprintf(stderr,
-                "Element %d of probability 0%% is output by the sampling "
-                "procedure\n",
-                i - LWE_MAX_NOISE);
-        goto err;
+  if (LWE_SAMPLE_N == lwe_sample_n_table || LWE_SAMPLE_N == lwe_sample_n_alias) {
+    uint64_t total = ROUNDS * LWE_N * LWE_N_BAR;
+    double chi_squared = 0;
+    int df = 0;  // degrees of freedom
+  
+    for (i = 1; i < 2 * max_noise; i++) {
+      int v = abs(i - max_noise);
+      double expect;
+      if (v > 0){
+        if(LWE_SAMPLE_N == lwe_sample_n_table)
+          expect = .5 * (double)(lwe_table[v][2] - lwe_table[v - 1][2]) /
+              cdf_scale * total;
+        else if (LWE_SAMPLE_N == lwe_sample_n_alias)
+          expect = .5 * (double)(LWE_CDF_TABLE[v] - LWE_CDF_TABLE[v - 1]) /
+              cdf_scale * total;
+      } else {
+        if(LWE_SAMPLE_N == lwe_sample_n_table)
+          expect = (double)(lwe_table[0][2]) / cdf_scale * total;
+        else if (LWE_SAMPLE_N == lwe_sample_n_alias)
+          expect = (double)(LWE_CDF_TABLE[0]) / cdf_scale * total;
       }
+  
+      if (expect == 0) {
+        if (counts[i] == 0)
+          continue;
+        else {
+          fprintf(stderr,
+                  "Element %d of probability 0%% is output by the sampling "
+                  "procedure\n",
+                  i - max_noise);
+          goto err;
+        }
+      }
+  
+      double p = (counts[i] - expect) * (counts[i] - expect) / expect;
+  
+      chi_squared += p;
+      df++;
+  
+      if(counts[i] != 0 || expect != 0)
+        BIO_printf(out, "count[%4i] = %d, expectation = %.2f\n", i - max_noise, 
+                   counts[i], expect);
     }
+  
+    BIO_printf(out, "The chi-squared statistic = %f (df = %d)\n", chi_squared,
+               df);
+  
+    if (chi_squared > 2 * df) { 
+      BIO_printf(out, "Chi-squared test failed.\n");
+    //  goto err; // terrible fit! May abort here, but go on with other tests.
+    }
+    else
+      BIO_printf(out, "Chi-squared test passed.\n");
+  } else {
+    // simply print out the histogram
+    for (i = 1; i < 2 * max_noise; i++)
+      if(counts[i] != 0)
+        BIO_printf(out, "count[%4i] = %d\n", i - max_noise, counts[i]);
+  }
+  ret = 1;
 
-    double p = (counts[i] - expect) * (counts[i] - expect) / expect;
+err : 
+  OPENSSL_free(s);
+  OPENSSL_free(counts);
 
-    chi_squared += p;
-    df++;
-
-    if(counts[i] != 0)
-      BIO_printf(out, "count[%4i] = %d\n", i - LWE_MAX_NOISE, counts[i]);
-  // BIO_printf(out, "count[%4i] = %d, expectation = %f\n", i - LWE_MAX_NOISE,
-  //           counts[i], expect);
-}
-
-// BIO_printf(out, "The chi-squared statistic = %f (df = %d)\n", chi_squared,
-//           df);
-
-//  if (chi_squared > 2 * df)  // terrible fit! May abort here, but go on with
-//  other tests.
-//    goto err;
-
-BIO_printf(out, "Checked.\n");
-ret = 1;
-
-err : OPENSSL_free(s);
-OPENSSL_free(counts);
-
-return ret;
+  return ret;
 }
 
 static int test_lwekex(BIO *out, int single) {

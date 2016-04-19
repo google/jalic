@@ -74,7 +74,8 @@
 
 /************************
  * TABLE-BASED SAMPLING *
- ***********************/
+ * 192 bits per sample  *
+ ************************/
 
 int cmplt_ct(const uint64_t *a, const uint64_t *b) {
   /* Returns 0 if a >= b
@@ -114,13 +115,6 @@ uint32_t single_sample_table_ct(const uint64_t *in) {
   uint32_t index = 0, i;
 
   for (i = 0; i < LWE_MAX_NOISE; i++) {
-    /*
-    uint32_t mask1, mask2;
-    mask1 = cmplt_ct(in, lwe_table[i]);
-    mask1 = (uint32_t)(0 - (int32_t)mask1);
-    mask2 = (~mask1);
-    index = ((index & mask1) | ((i + 1) & mask2));
-    */
     int c = cmplt_ct(in, lwe_table[i]);
     index = CONST_TIME_TERNARY_IF_ALT32(c, index, i + 1);
   }
@@ -243,40 +237,55 @@ void lwe_sample_n_binomial32(uint32_t *s, const size_t n) {
  * The range of the distribution is [0..8]. Requires 4 bits to sample the bin
  * and 7 bits to sample the threshold.
  */
-static const uint8_t ALIAS_METHOD_BINS = 16;
+static const uint8_t LWE_ALIAS_METHOD_BINS = 16;  // shared between S6 and S8
 
 static const uint8_t ALIAS_METHOD_THRESHOLDS_S6[] = {
-    76, 128, 105, 60, 110, 85, 34, 12, 3, 0, 0, 0, 0, 0, 0, 0};
+    75, 128, 106, 60, 110, 85, 34, 12, 3, 1, 0, 0, 0, 0, 0, 0};
 static const uint8_t ALIAS_METHOD_ALIASES_S6[] = {1, 1, 1, 4, 1, 1, 1, 2,
                                                   1, 2, 1, 0, 3, 2, 0, 3};
+
+const size_t CDF_LENGTH_S6 = 10;
+const uint16_t CDF_S6[] = {0x14B, 0x3AE, 0x58B, 0x6C7, 0x779,
+                           0x7CE, 0x7F0, 0x7FC, 0x7FF, 0x800};
 
 /* Good appoximation to the rounded Gaussian with sigma^2 = 8. The Renyi
  * divergence of order 50 between the two is ~1.000565.
  * The range of the distribution is [0..10]. Requires 4 bits to sample the bin
  * and 7 bits to sample the threshold.
  */
-const uint8_t ALIAS_METHOD_THRESHOLDS_S8[16] = {
+static const uint8_t ALIAS_METHOD_THRESHOLDS_S8[] = {
     105, 116, 77, 128, 74, 122, 62, 28, 11, 4, 1, 0, 0, 0, 0, 0};
-const uint8_t ALIAS_METHOD_ALIASES_S8[16] = {3, 4, 3, 3, 0, 1, 1, 1,
-                                             2, 1, 2, 3, 0, 1, 2, 4};
+static const uint8_t ALIAS_METHOD_ALIASES_S8[] = {3, 4, 3, 3, 0, 1, 1, 1,
+                                                  2, 1, 2, 3, 0, 1, 2, 4};
+const size_t CDF_LENGTH_S8 = 11;
+const uint16_t CDF_S8[] = {0x11F, 0x33B, 0x4FC, 0x646, 0x71C, 0x796,
+                           0x7D4, 0x7F0, 0x7FB, 0x7FF, 0x800};
 
 #if (ALIAS_METHOD_THRESHOLDS & 0x0F) != 0 || (ALIAS_METHOD_ALIASES & 0x0F) != 0
 #error "Static constants are not aligned. A potential cache-timing attack."
 #endif
 
-typedef struct {
-  /* The struct used in the sampling process; can be replaced with bit
-   * manipulation routines. Important: its size must be exactly 3 bytes
-   * (guaranteed by the packed attribute). Not important: the exact
-   * ordering of bit-fields.
-   */
-  uint8_t threshold1 : 7;
-  uint8_t bin1 : 4;
-  uint8_t sign1 : 1;
-  uint8_t threshold2 : 7;
-  uint8_t bin2 : 4;
-  uint8_t sign2 : 1;
-} __attribute__((__packed__)) three_bytes_packed;
+typedef union {
+  struct {
+    /* The struct used in the sampling process; can be replaced with bit
+     * manipulation routines. Important: its size must be exactly 3 bytes
+     * (guaranteed by the packed attribute). Not important: the exact
+     * ordering of bit-fields.
+     */
+    uint8_t threshold1 : 7;
+    uint8_t bin1 : 4;
+    uint8_t sign1 : 1;
+    uint8_t threshold2 : 7;
+    uint8_t bin2 : 4;
+    uint8_t sign2 : 1;
+  } __attribute__((__packed__)) alias_method;
+  struct {
+    uint16_t rnd1 : 11;
+    uint8_t sign1 : 1;
+    uint16_t rnd2 : 11;
+    uint8_t sign2 : 1;
+  } __attribute__((__packed__)) cdf_table;
+} three_bytes_packed;
 
 void lwe_sample_n_alias(uint32_t *s, size_t n) {
   /* Fills vector s with n samples from the noise distribution. The noise
@@ -300,10 +309,29 @@ void lwe_sample_n_alias(uint32_t *s, size_t n) {
   OPENSSL_assert(sizeof(three_bytes_packed) == 3);
 
   for (i = 0; i < n; i += 2) {  // two output elements at a time
-    uint8_t bin1, threshold1, sample1 = ALIAS_METHOD_BINS;
-    uint8_t bin2, threshold2, sample2 = ALIAS_METHOD_BINS;
     int8_t sign1, sign2;
 
+    three_bytes_packed *ptr_packed = (three_bytes_packed *)(rnd + 3 * i / 2);
+
+#if LWE_SAMPLE_CONST_TIME_LEVEL >= 2
+    /* Super-constant timing: the tables of thresholds and aliases are ingested
+     * for every sample.
+     */
+    uint16_t rnd1 = ptr_packed->cdf_table.rnd1;
+    uint16_t rnd2 = ptr_packed->cdf_table.rnd2;
+
+    uint8_t sample1 = 0;
+    uint8_t sample2 = 0;
+
+    size_t j;
+    for (j = 0; j < LWE_CDF_TABLE_LENGTH; j++) {
+      sample1 = CONST_TIME_TERNARY_IF(rnd1 < LWE_CDF_TABLE[j], sample1, j + 1);
+      sample2 = CONST_TIME_TERNARY_IF(rnd2 < LWE_CDF_TABLE[j], sample2, j + 1);
+    }
+
+    sign1 = 2 * ptr_packed->cdf_table.sign1 - 1;
+    sign2 = 2 * ptr_packed->cdf_table.sign2 - 1;
+#else
     /* Use 24 bits of u to sample two noise values using the alias method as
      * follows:
      * u: [byte 0] [byte 1] [byte 2]
@@ -335,48 +363,36 @@ void lwe_sample_n_alias(uint32_t *s, size_t n) {
      *  - more compiler-dependent. In particular, __attribute__((packed))
      *    is gcc-specific.
      */
-    three_bytes_packed *ptr_packed = (three_bytes_packed *)(rnd + 3 * i / 2);
-    bin1 = ptr_packed->bin1;
-    threshold1 = ptr_packed->threshold1;
-    sign1 = 2 * ptr_packed->sign1 - 1;
+    uint8_t bin1, threshold1, sample1 = LWE_ALIAS_METHOD_BINS;
+    uint8_t bin2, threshold2, sample2 = LWE_ALIAS_METHOD_BINS;
 
-    bin2 = ptr_packed->bin2;
-    threshold2 = ptr_packed->threshold2;
-    sign2 = 2 * ptr_packed->sign2 - 1;
+    bin1 = ptr_packed->alias_method.bin1;
+    threshold1 = ptr_packed->alias_method.threshold1;
+    sign1 = 2 * ptr_packed->alias_method.sign1 - 1;
 
-#if LWE_SAMPLE_CONST_TIME_LEVEL >= 2
-    /* Super-constant timing: the tables of thresholds and aliases are ingested
-     * for every sample.
-     */
-    uint8_t b1, b2;
-    size_t j;
-    for (j = 0; j < ALIAS_METHOD_BINS; j++) {
-      b1 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS[j] < threshold1,
-                                 ALIAS_METHOD_ALIASES[j], j);
-      sample1 = CONST_TIME_TERNARY_IF(j == bin1, b1, sample1);
+    bin2 = ptr_packed->alias_method.bin2;
+    threshold2 = ptr_packed->alias_method.threshold2;
+    sign2 = 2 * ptr_packed->alias_method.sign2 - 1;
 
-      b2 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS[j] < threshold2,
-                                 ALIAS_METHOD_ALIASES[j], j);
-      sample2 = CONST_TIME_TERNARY_IF(j == bin2, b2, sample2);
-    }
-
-#else
 #if LWE_SAMPLE_CONST_TIME_LEVEL >= 1
     /* Constant time except that table lookups have variable access
      * pattern. (Tables most likely fit into a single cacheline.)
      */
-    sample1 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS[bin1] < threshold1,
-                                    ALIAS_METHOD_ALIASES[bin1], bin1);
-    sample2 = CONST_TIME_TERNARY_IF(ALIAS_METHOD_THRESHOLDS[bin2] < threshold2,
-                                    ALIAS_METHOD_ALIASES[bin2], bin2);
+    sample1 =
+        CONST_TIME_TERNARY_IF(LWE_ALIAS_METHOD_THRESHOLDS[bin1] <= threshold1,
+                              LWE_ALIAS_METHOD_ALIASES[bin1], bin1);
+    sample2 =
+        CONST_TIME_TERNARY_IF(LWE_ALIAS_METHOD_THRESHOLDS[bin2] <= threshold2,
+                              LWE_ALIAS_METHOD_ALIASES[bin2], bin2);
 #else
     // No expectation of constant timing!
-    sample1 = ALIAS_METHOD_THRESHOLDS[bin1] < threshold1
-                  ? ALIAS_METHOD_ALIASES[bin1]
+    sample1 = LWE_ALIAS_METHOD_THRESHOLDS[bin1] <= threshold1
+                  ? LWE_ALIAS_METHOD_ALIASES[bin1]
                   : bin1;
-    sample2 = ALIAS_METHOD_THRESHOLDS[bin2] < threshold2
-                  ? ALIAS_METHOD_ALIASES[bin2]
+    sample2 = LWE_ALIAS_METHOD_THRESHOLDS[bin2] <= threshold2
+                  ? LWE_ALIAS_METHOD_ALIASES[bin2]
                   : bin2;
+    if (sample1 == 15) fprintf(stderr, "ERROR: %d %d\n", bin1, threshold1);
 #endif
 
 #endif
